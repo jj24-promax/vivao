@@ -16,7 +16,7 @@ const PaymentMethods = () => {
 
   return (
     <section className="container mx-auto px-4 py-8 border-b border-gray-100">
-      <p className="text-gray-600 text-sm mb-6">Você pode pagar com:</p>
+      <p className="text-gray-800 text-lg md:text-xl font-medium mb-6">Você pode pagar com:</p>
       <div className="flex flex-wrap items-center gap-4 md:gap-8">
         {logos.map((logo, index) => (
           <div key={index} className="h-10 w-16 md:w-20 flex items-center justify-center border border-gray-100 rounded p-1 bg-white shadow-sm">
