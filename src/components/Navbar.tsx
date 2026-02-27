@@ -16,9 +16,9 @@ const Navbar = () => {
     <header className="w-full bg-white border-b border-gray-100">
       <div className="container mx-auto px-4">
         {/* Top bar */}
-        <div className="flex items-center py-4">
+        <div className="flex items-center py-5">
           <img src="/vivo-logo.png" alt="Vivo" className="h-10 mr-8" />
-          <span className="text-[#660099] text-sm font-medium">Recarga Digital</span>
+          <span className="text-[#660099] text-base font-medium">Recarga Digital</span>
         </div>
         
         {/* Navigation */}
@@ -27,7 +27,7 @@ const Navbar = () => {
             <a
               key={item.label}
               href="#"
-              className={`text-sm whitespace-nowrap pb-2 border-b-2 transition-colors ${
+              className={`text-[15px] whitespace-nowrap pb-3 border-b-2 transition-colors ${
                 item.active 
                   ? 'text-[#660099] border-[#660099] font-semibold' 
                   : 'text-gray-600 border-transparent hover:text-[#660099]'
