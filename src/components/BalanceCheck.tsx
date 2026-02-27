@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 const BalanceCheck = () => {
@@ -12,9 +12,7 @@ const BalanceCheck = () => {
   const [balance, setBalance] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Aceita apenas números
     const value = e.target.value.replace(/\D/g, "");
-    // Limita a 11 dígitos (2 DDD + 9 número)
     if (value.length <= 11) {
       setPhoneNumber(value);
     }
@@ -29,7 +27,6 @@ const BalanceCheck = () => {
     setIsLoading(true);
     setBalance(null);
 
-    // Simulação de request ao backend
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setIsLoading(false);
@@ -37,10 +34,13 @@ const BalanceCheck = () => {
     showSuccess("Consulta realizada com sucesso!");
   };
 
+  const scrollToRecharge = () => {
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  };
+
   return (
     <section className="container mx-auto px-4 py-16 border-t border-gray-100">
       <div className="max-w-2xl">
-        {/* Título com Ícone */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
             <img 
@@ -52,12 +52,10 @@ const BalanceCheck = () => {
           <h3 className="text-3xl font-light text-gray-800">Consulte seu saldo grátis</h3>
         </div>
         
-        {/* Subtítulo */}
         <p className="text-gray-500 text-base mb-8">
           Digite seu número Vivo e receba uma mensagem com seu saldo disponível.
         </p>
         
-        {/* Formulário */}
         <div className="flex flex-col sm:flex-row gap-4 max-w-md">
           <Input 
             type="text"
@@ -83,12 +81,28 @@ const BalanceCheck = () => {
           </Button>
         </div>
 
-        {/* Resultado da Simulação */}
         {balance && (
           <div className="mt-8 p-6 bg-purple-50 border border-purple-100 rounded-xl animate-in fade-in slide-in-from-top-4 duration-500">
             <p className="text-sm text-[#660099] font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
             <p className="text-4xl font-light text-gray-900">{balance}</p>
-            <p className="text-xs text-gray-500 mt-4 italic">
+            
+            {/* Mensagem de Alerta Condicional */}
+            {balance === "R$ 0,00" && (
+              <div className="mt-3 flex items-center gap-2 text-orange-700 text-sm font-medium">
+                <AlertCircle size={16} className="shrink-0" />
+                <p>
+                  Recarregue antes que a linha seja cancelada{" "}
+                  <button 
+                    onClick={scrollToRecharge}
+                    className="underline font-bold hover:text-orange-800 transition-colors"
+                  >
+                    (clique aqui)
+                  </button>.
+                </p>
+              </div>
+            )}
+
+            <p className="text-[10px] text-gray-400 mt-6 italic">
               *Este é um valor simulado para o número {phoneNumber.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}.
             </p>
           </div>
