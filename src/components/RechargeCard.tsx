@@ -20,7 +20,7 @@ const RechargeCard = ({ value, bonus }: RechargeCardProps) => {
         <p className="text-2xl font-bold text-black">{bonus} de bônus</p>
       </div>
       
-      <Button className="bg-[#D8245C] hover:bg-[#b01d4a] text-white font-bold py-3 px-8 rounded-md w-full sm:w-auto">
+      <Button className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-3 px-8 rounded-md w-full sm:w-auto">
         Recarregue
       </Button>
     </div>

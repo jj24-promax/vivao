@@ -22,7 +22,7 @@ const BalanceCheck = () => {
             placeholder="DDD + Celular Vivo" 
             className="h-12 border-gray-300 focus:ring-[#660099]"
           />
-          <Button className="bg-[#D8245C] hover:bg-[#b01d4a] text-white font-bold h-12 px-8">
+          <Button className="bg-[#660099] hover:bg-[#550080] text-white font-bold h-12 px-8">
             Consultar
           </Button>
         </div>
