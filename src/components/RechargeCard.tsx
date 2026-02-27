@@ -10,17 +10,17 @@ interface RechargeCardProps {
 
 const RechargeCard = ({ value, bonus }: RechargeCardProps) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 flex flex-col min-w-[250px] flex-1 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-lg p-8 flex flex-col items-center text-center min-w-[250px] flex-1 shadow-sm hover:shadow-md transition-shadow">
       <div className="mb-4">
-        <h3 className="text-3xl font-light text-gray-800">R$ {value}</h3>
-        <p className="text-xs text-gray-500 mt-1">Oferta Vivo Pré*</p>
+        <h3 className="text-4xl font-light text-black">R$ {value}</h3>
+        <p className="text-sm text-gray-600 mt-1">Oferta Vivo Pré*</p>
       </div>
       
       <div className="mb-8">
-        <p className="text-2xl font-light text-gray-800">{bonus} de bônus</p>
+        <p className="text-2xl font-light text-black">{bonus} de bônus</p>
       </div>
       
-      <Button className="bg-[#D8245C] hover:bg-[#b01d4a] text-white font-medium py-2 px-4 rounded w-fit">
+      <Button className="bg-[#D8245C] hover:bg-[#b01d4a] text-white font-bold py-3 px-8 rounded-md w-full sm:w-auto">
         Recarregue
       </Button>
     </div>
