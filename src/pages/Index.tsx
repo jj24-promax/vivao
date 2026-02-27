@@ -1,17 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+"use client";
 
+import React from 'react';
+import Navbar from '@/components/Navbar';
+import Hero from '@/components/Hero';
+import RechargeSection from '@/components/RechargeSection';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">
-          Start building your amazing project here!
-        </p>
-      </div>
-      <MadeWithDyad />
+    <div className="min-h-screen bg-white font-sans">
+      <Navbar />
+      <main>
+        <Hero />
+        <RechargeSection />
+      </main>
+      
+      <footer className="bg-gray-50 py-12 mt-12 border-t border-gray-100">
+        <div className="container mx-auto px-4 text-center text-gray-400 text-xs">
+          <p>© 2024 Vivo. Todos os direitos reservados.</p>
+          <MadeWithDyad />
+        </div>
+      </footer>
     </div>
   );
 };
