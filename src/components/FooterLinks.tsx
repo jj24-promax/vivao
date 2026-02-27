@@ -1,24 +1,24 @@
 "use client";
 
 import React from 'react';
-import { CreditCard, HelpCircle, FileText } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 
 const FooterLinks = () => {
   const links = [
     {
-      icon: <CreditCard className="text-[#660099]" size={24} />,
+      icon: <img src="/vivo-chip-icon.png" alt="Chip" className="w-8 h-8" />,
       title: "VIVO CHIP",
       desc: "Compre seu Chip na loja online e venha pra Vivo.",
       action: "Compre agora"
     },
     {
-      icon: <HelpCircle className="text-[#660099]" size={24} />,
+      icon: <HelpCircle className="text-[#660099]" size={32} />,
       title: "DÚVIDAS",
       desc: "Acesse nosso FAQ e tire todas as suas dúvidas.",
       action: "Confira"
     },
     {
-      icon: <FileText className="text-[#660099]" size={24} />,
+      icon: <img src="/vivo-regulamentos-icon.png" alt="Regulamentos" className="w-8 h-8" />,
       title: "REGULAMENTOS",
       desc: "Acesse todos os itens referentes à recarga Vivo.",
       action: "Confira"
@@ -31,7 +31,7 @@ const FooterLinks = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {links.map((link, index) => (
           <div key={index} className="flex gap-4 items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-            <div className="bg-white p-3 rounded-lg shadow-sm">
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-center justify-center min-w-[56px] min-h-[56px]">
               {link.icon}
             </div>
             <div>

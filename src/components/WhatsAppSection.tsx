@@ -30,14 +30,11 @@ const WhatsAppSection = () => {
         </div>
         
         <div className="flex-1 flex justify-center">
-          {/* Usando um placeholder para a imagem do celular com WhatsApp */}
-          <div className="relative w-full max-w-[500px]">
-            <img 
-              src="https://images.unsplash.com/photo-1611746872915-64382b5c76da?auto=format&fit=crop&q=80&w=500" 
-              alt="WhatsApp Vivo" 
-              className="rounded-3xl shadow-2xl border-8 border-gray-800"
-            />
-          </div>
+          <img 
+            src="/whatsapp-section.webp" 
+            alt="WhatsApp Vivo" 
+            className="max-w-full h-auto"
+          />
         </div>
       </div>
     </section>

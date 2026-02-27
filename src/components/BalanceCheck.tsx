@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -10,9 +9,7 @@ const BalanceCheck = () => {
     <section className="container mx-auto px-4 py-16 border-t border-gray-100">
       <div className="max-w-2xl">
         <div className="flex items-center gap-4 mb-6">
-          <div className="bg-orange-100 p-3 rounded-full">
-            <Search className="text-orange-500" size={24} />
-          </div>
+          <img src="/consultar-saldo-icon.png" alt="Saldo" className="w-12 h-12 object-contain" />
           <h3 className="text-2xl font-light text-gray-800">Consulte seu saldo grátis</h3>
         </div>
         
