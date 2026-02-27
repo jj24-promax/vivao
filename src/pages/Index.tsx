@@ -4,6 +4,8 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import RechargeSection from '@/components/RechargeSection';
+import PaymentMethods from '@/components/PaymentMethods';
+import ScheduledRecharge from '@/components/ScheduledRecharge';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -12,7 +14,9 @@ const Index = () => {
       <Navbar />
       <main>
         <Hero />
+        <PaymentMethods />
         <RechargeSection />
+        <ScheduledRecharge />
       </main>
       
       <footer className="bg-gray-50 py-12 mt-12 border-t border-gray-100">
