@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ChevronUp } from 'lucide-react';
-import { MadeWithDyad } from "./made-with-dyad";
 
 const Footer = () => {
   const scrollToTop = () => {
@@ -37,10 +36,6 @@ const Footer = () => {
             <p>Telefônica Brasil S.A CNPJ: 02.558.157/0001- 62. Copyright 2025 © Vivo.</p>
             <p>Todos os direitos reservados.</p>
           </div>
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <MadeWithDyad />
         </div>
       </div>
     </footer>
