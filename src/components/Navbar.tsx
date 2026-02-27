@@ -18,7 +18,7 @@ const Navbar = () => {
         {/* Top bar */}
         <div className="flex items-center py-5">
           <img src="/vivo-logo.png" alt="Vivo" className="h-10 mr-8" />
-          <span className="text-[#660099] text-base font-medium">Recarga Digital</span>
+          <span className="text-[#660099] text-base font-bold">Recarga Digital</span>
         </div>
         
         {/* Navigation */}
@@ -27,10 +27,10 @@ const Navbar = () => {
             <a
               key={item.label}
               href="#"
-              className={`text-[15px] whitespace-nowrap pb-3 border-b-2 transition-colors ${
+              className={`text-[15px] whitespace-nowrap pb-3 border-b-2 transition-colors font-bold ${
                 item.active 
-                  ? 'text-[#660099] border-[#660099] font-semibold' 
-                  : 'text-gray-600 border-transparent hover:text-[#660099]'
+                  ? 'text-[#660099] border-[#660099]' 
+                  : 'text-gray-800 border-transparent hover:text-[#660099]'
               }`}
             >
               {item.label}
