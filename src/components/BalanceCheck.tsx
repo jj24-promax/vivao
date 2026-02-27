@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 const BalanceCheck = () => {
@@ -86,19 +86,18 @@ const BalanceCheck = () => {
             <p className="text-sm text-[#660099] font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
             <p className="text-4xl font-light text-gray-900">{balance}</p>
             
-            {/* Mensagem de Alerta Condicional */}
+            {/* Mensagem de Alerta Condicional Estilizada */}
             {balance === "R$ 0,00" && (
-              <div className="mt-3 flex items-center gap-2 text-orange-700 text-sm font-medium">
-                <AlertCircle size={16} className="shrink-0" />
-                <p>
-                  Recarregue antes que a linha seja cancelada{" "}
-                  <button 
-                    onClick={scrollToRecharge}
-                    className="underline font-bold hover:text-orange-800 transition-colors"
-                  >
-                    (clique aqui)
-                  </button>.
-                </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-orange-800 text-sm font-medium bg-orange-50/50 p-3 rounded-lg border border-orange-100">
+                <AlertCircle size={18} className="shrink-0 text-orange-600" />
+                <span>Recarregue antes que a linha seja cancelada</span>
+                <button 
+                  onClick={scrollToRecharge}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-900 rounded-full border border-orange-200 font-bold hover:bg-orange-200 hover:shadow-sm transition-all active:scale-95 group"
+                >
+                  clique aqui
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </button>
               </div>
             )}
 
