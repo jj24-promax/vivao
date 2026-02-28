@@ -8,6 +8,7 @@ import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight } from
 import { QRCodeSVG } from 'qrcode.react';
 import { callPixupAPI } from '@/utils/payment';
 import { showSuccess, showError } from '@/utils/toast';
+import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface PaymentModalProps {
 }
 
 const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
-  const [step, setStep] = useState<'phone' | 'pix'>('phone');
+  const [step, setStep] = useState<'phone' | 'pix' | 'success'>('phone');
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
@@ -33,6 +34,34 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
       }, 300);
     }
   }, [isOpen]);
+
+  // Monitorar status do pagamento via polling ou realtime
+  useEffect(() => {
+    if (step === 'pix' && paymentData?.transactionId) {
+      const channel = supabase
+        .channel('payment_status')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'payments',
+            filter: `transaction_id=eq.${paymentData.transactionId}`,
+          },
+          (payload) => {
+            if (payload.new.status === 'PAID') {
+              setStep('success');
+              showSuccess("Pagamento confirmado! Sua recarga será creditada em instantes.");
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [step, paymentData]);
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
@@ -52,23 +81,34 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     setLoading(true);
     try {
       const numericAmount = parseFloat(amount.replace(',', '.'));
+      const externalId = `vivo_${Date.now()}`;
       
-      // Configuração do Split (Ajuste os usernames conforme sua conta Pixup)
-      const splitConfig = [
-        {
-          username: "usertest", // Substitua pelo username real do destinatário do split
-          percentageSplit: "10"  // 10% de comissão/split
-        }
-      ];
+      // URL do Webhook (Ajuste conforme seu projeto Supabase)
+      const postbackUrl = `https://rvjycrapllupubyieqae.supabase.co/functions/v1/pixup-webhook`;
 
       const data = await callPixupAPI('create_payment', {
         amount: numericAmount,
         payerQuestion: `Recarga Vivo - ${phoneNumber}`,
-        external_id: `vivo_${Date.now()}`,
-        split: splitConfig // Adicionando o objeto de split
+        external_id: externalId,
+        postbackUrl: postbackUrl,
+        split: [
+          {
+            username: "usertest",
+            percentageSplit: "10"
+          }
+        ]
       });
       
       if (data.qrcode) {
+        // Registrar transação no banco de dados local
+        await supabase.from('payments').insert({
+          transaction_id: data.transactionId,
+          external_id: externalId,
+          amount: numericAmount,
+          phone_number: phoneNumber,
+          status: 'PENDING'
+        });
+
         setPaymentData(data);
         setTimeLeft(data.calendar?.expiration || 3000);
         setStep('pix');
@@ -111,18 +151,20 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <Smartphone className="w-6 h-6" />
-              {step === 'phone' ? 'Informe seu número' : 'Finalizar Recarga'}
+              {step === 'phone' ? 'Informe seu número' : step === 'pix' ? 'Finalizar Recarga' : 'Sucesso!'}
             </DialogTitle>
             <DialogDescription className="text-purple-100 opacity-90">
               {step === 'phone' 
                 ? 'Precisamos do seu número para creditar a recarga.' 
-                : 'Escaneie o QR Code ou copie o código para pagar.'}
+                : step === 'pix' 
+                ? 'Escaneie o QR Code ou copie o código para pagar.'
+                : 'Seu pagamento foi confirmado com sucesso.'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="p-8 flex flex-col items-center">
-          {step === 'phone' ? (
+          {step === 'phone' && (
             <div className="w-full space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Número Vivo com DDD</label>
@@ -141,7 +183,9 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                 {loading ? <Loader2 className="animate-spin" /> : <>Continuar <ArrowRight size={20} /></>}
               </Button>
             </div>
-          ) : (
+          )}
+
+          {step === 'pix' && (
             <>
               <div className="mb-6 text-center">
                 <p className="text-sm text-gray-500 uppercase font-bold tracking-wider mb-1">Valor da Recarga</p>
@@ -167,6 +211,26 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                 </div>
               </div>
             </>
+          )}
+
+          {step === 'success' && (
+            <div className="text-center space-y-6 py-4">
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 size={48} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-gray-900">Pagamento Confirmado!</h3>
+                <p className="text-gray-500">
+                  Recebemos seu pagamento de <strong>R$ {amount}</strong> para o número <strong>{phoneNumber}</strong>.
+                </p>
+              </div>
+              <Button 
+                onClick={onClose}
+                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl"
+              >
+                Fechar
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>
