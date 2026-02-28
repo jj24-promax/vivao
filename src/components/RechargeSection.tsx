@@ -8,10 +8,10 @@ const RechargeSection = () => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const offers = [
-    { value: '20,00', bonus: '2GB' },
-    { value: '25,00', bonus: '3GB' },
-    { value: '30,00', bonus: '5GB' },
-    { value: '50,00', bonus: '10GB' },
+    { value: '20,00', bonus: '2GB', hasApps: false },
+    { value: '25,00', bonus: '3GB', hasApps: false },
+    { value: '30,00', bonus: '5GB', hasApps: true },
+    { value: '50,00', bonus: '10GB', hasApps: true },
   ];
 
   const scrollToOffers = (e: React.MouseEvent) => {
@@ -19,11 +19,10 @@ const RechargeSection = () => {
     cardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  // Atualiza a bolinha ativa baseada no scroll (apenas mobile)
   const handleScroll = () => {
     if (cardsRef.current && window.innerWidth < 768) {
       const scrollLeft = cardsRef.current.scrollLeft;
-      const cardWidth = cardsRef.current.offsetWidth * 0.85; // 85% é a largura do card no mobile
+      const cardWidth = cardsRef.current.offsetWidth * 0.85;
       const index = Math.round(scrollLeft / cardWidth);
       if (index !== activeIndex) {
         setActiveIndex(index);
@@ -46,7 +45,6 @@ const RechargeSection = () => {
         </button>
       </div>
       
-      {/* Container com scroll horizontal no mobile e grid no desktop */}
       <div 
         id="recharge-offers"
         ref={cardsRef} 
@@ -58,12 +56,15 @@ const RechargeSection = () => {
             key={index} 
             className="min-w-[85%] sm:min-w-0 snap-center"
           >
-            <RechargeCard value={offer.value} bonus={offer.bonus} />
+            <RechargeCard 
+              value={offer.value} 
+              bonus={offer.bonus} 
+              showAppsBonus={offer.hasApps} 
+            />
           </div>
         ))}
       </div>
       
-      {/* Indicadores de página (bolinhas) visíveis apenas no mobile */}
       <div className="flex md:hidden justify-center mt-8 gap-3">
         {offers.map((_, index) => (
           <div 
