@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
-import InputMask from 'react-input-mask';
 import { showSuccess } from "@/utils/toast";
 
 interface CheckoutModalProps {
@@ -34,6 +33,19 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
     }
   }, [isOpen]);
 
+  // Formatação manual do telefone: (99) 99999-9999
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setPhoneNumber(formatted);
+  };
+
   const isPhoneValid = phoneNumber.replace(/\D/g, "").length === 11;
 
   const handlePixGeneration = async () => {
@@ -52,7 +64,6 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
         <div className="bg-[#660099] p-8 text-white relative overflow-hidden">
-          {/* Decorative circle */}
           <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
           
           <DialogHeader className="relative z-10">
@@ -73,21 +84,14 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
                   <Smartphone size={16} className="text-[#660099]" />
                   Número Vivo com DDD
                 </label>
-                <InputMask
-                  mask="(99) 99999-9999"
+                <Input
+                  type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                >
-                  {(inputProps: any) => (
-                    <Input
-                      {...inputProps}
-                      type="tel"
-                      placeholder="(00) 00000-0000"
-                      className="h-16 text-xl border-gray-200 focus:ring-[#660099] focus:border-[#660099] rounded-2xl bg-gray-50/50"
-                      autoFocus
-                    />
-                  )}
-                </InputMask>
+                  onChange={handlePhoneChange}
+                  placeholder="(00) 00000-0000"
+                  className="h-16 text-xl border-gray-200 focus:ring-[#660099] focus:border-[#660099] rounded-2xl bg-gray-50/50"
+                  autoFocus
+                />
               </div>
 
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
@@ -126,7 +130,6 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
               <div className="flex flex-col items-center space-y-4">
                 <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
-                  {/* Simulated QR Code */}
                   <div className="w-48 h-48 bg-gray-50 flex items-center justify-center relative overflow-hidden rounded-lg">
                     <QrCode size={160} className="text-gray-800" strokeWidth={1.5} />
                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-pulse" />
