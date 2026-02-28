@@ -29,10 +29,6 @@ const WhatsAppSection = () => {
             </ul>
           </div>
           
-          <p className="text-gray-600 text-base pt-4">
-            Adicione e converse no número <span className="underline font-semibold">(11) 99915-1515</span> ou clique aqui:
-          </p>
-          
           <Button 
             onClick={handleRecarregue}
             className="bg-[#660099] hover:bg-[#550080] text-white font-bold px-10 py-7 rounded-md text-base"
