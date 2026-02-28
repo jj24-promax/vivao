@@ -5,53 +5,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface PaymentResponse {
-  transactionId: string;
-  copyPasteCode: string;
-  qrCodeImageUrl: string;
-  amount: number;
-  expiresAt: string;
-  status: 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED';
-}
-
 serve(async (req) => {
+  // 1. Tratamento de CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    console.log("[pixup-payment] Iniciando processamento de requisição...");
+    
     const body = await req.json();
     const { amount, phone } = body;
+    
+    // 2. Verificação de Variáveis de Ambiente
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
-
-    // Log de depuração (mascarado por segurança)
-    console.log("[pixup-payment] Verificando API Key...");
+    
     if (!API_KEY) {
-      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada no Supabase Secrets.");
-      return new Response(JSON.stringify({ error: "Configuração de API (PIXUP_API_KEY) ausente no servidor." }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      });
-    } else {
-      console.log(`[pixup-payment] API Key detectada: ${API_KEY.substring(0, 6)}...`);
+      console.error("[pixup-payment] ERRO CRÍTICO: A variável de ambiente PIXUP_API_KEY não está configurada no Supabase.");
+      return new Response(
+        JSON.stringify({ 
+          error: "Configuração ausente", 
+          details: "A PIXUP_API_KEY não foi encontrada nas Secrets do projeto. Configure-a no painel do Supabase." 
+        }), 
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // 3. Preparação dos dados
     const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
     const amountInCents = Math.round(parseFloat(cleanAmount) * 100);
-
-    if (isNaN(amountInCents) || amountInCents <= 0) {
-      return new Response(JSON.stringify({ error: "Valor de recarga inválido." }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
     const cleanPhone = phone.replace(/\D/g, '');
-    const correlationID = `v_${Date.now()}_${randomSuffix}`;
+    const correlationID = `v_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    console.log(`[pixup-payment] Solicitando Pix: ${correlationID} | Valor: ${amountInCents} cents`);
+    console.log(`[pixup-payment] Tentando gerar Pix para ${cleanPhone} no valor de ${amountInCents} centavos.`);
 
+    // 4. Chamada à API Externa com Try/Catch específico
     const baseUrl = "https://api.woovi.com/v1";
     
     const response = await fetch(`${baseUrl}/pix`, {
@@ -74,35 +62,41 @@ serve(async (req) => {
 
     const responseData = await response.json();
 
+    // 5. Verificação de erro da API externa
     if (!response.ok) {
-      console.error("[pixup-payment] Erro retornado pela Woovi:", responseData);
-      return new Response(JSON.stringify({ 
-        error: responseData.error || "O gateway de pagamento recusou a requisição." 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: response.status,
-      });
+      console.error("[pixup-payment] A API da Woovi retornou um erro:", responseData);
+      return new Response(
+        JSON.stringify({ 
+          error: "Erro no Gateway de Pagamento", 
+          details: responseData.error || responseData.message || "Erro desconhecido na Woovi",
+          raw: responseData 
+        }), 
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const payment: PaymentResponse = {
-      transactionId: responseData.pix.correlationID,
-      copyPasteCode: responseData.pix.brCode,
-      qrCodeImageUrl: responseData.pix.qrCodeImage,
-      amount: responseData.pix.value / 100,
-      expiresAt: responseData.pix.expiresDate,
-      status: 'PENDING'
-    };
-
-    return new Response(JSON.stringify(payment), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    console.log("[pixup-payment] Pix gerado com sucesso!");
+    
+    return new Response(
+      JSON.stringify({
+        transactionId: responseData.pix.correlationID,
+        copyPasteCode: responseData.pix.brCode,
+        qrCodeImageUrl: responseData.pix.qrCodeImage,
+        amount: responseData.pix.value / 100,
+        expiresAt: responseData.pix.expiresDate,
+        status: 'PENDING'
+      }), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error("[pixup-payment] Erro crítico:", error);
-    return new Response(JSON.stringify({ error: "Erro interno ao processar o pagamento." }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    console.error("[pixup-payment] Erro inesperado na execução da função:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Erro interno no servidor", 
+        details: error.message 
+      }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 })

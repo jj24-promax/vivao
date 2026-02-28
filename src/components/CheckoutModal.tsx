@@ -25,6 +25,7 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'pix_ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState("");
+  const [errorDetails, setErrorDetails] = useState("");
   const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
         setStatus('idle');
         setPaymentData(null);
         setErrorMessage("");
+        setErrorDetails("");
       }, 300);
     }
   }, [isOpen]);
@@ -56,23 +58,35 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
     
     setStatus('loading');
     setErrorMessage("");
+    setErrorDetails("");
     
     try {
       const { data, error } = await supabase.functions.invoke('pixup-payment', {
         body: { amount: planValue, phone: phoneNumber }
       });
 
-      if (error) throw new Error(error.message || "Erro na Edge Function");
-      if (data?.error) throw new Error(data.error);
+      // Se o Supabase retornar erro (ex: 500 ou 400), o 'error' virá preenchido
+      if (error) {
+        // Tenta extrair o JSON de erro se houver
+        let details = "Erro desconhecido";
+        try {
+          const errorBody = await error.context.json();
+          details = errorBody.details || errorBody.error || error.message;
+        } catch (e) {
+          details = error.message;
+        }
+        throw new Error(details);
+      }
+
+      if (data?.error) throw new Error(data.details || data.error);
 
       setPaymentData(data);
       setStatus('pix_ready');
       showSuccess("Pix gerado com sucesso!");
     } catch (err: any) {
-      console.error("[CheckoutModal] Erro:", err);
-      const msg = err.message || "Erro ao conectar com o gateway.";
-      setErrorMessage(msg);
-      showError(msg);
+      console.error("[CheckoutModal] Erro capturado:", err);
+      setErrorMessage("Falha ao gerar pagamento");
+      setErrorDetails(err.message);
       setStatus('error');
     }
   };
@@ -105,9 +119,12 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
           {(status === 'idle' || status === 'error') && (
             <div className="space-y-6">
               {status === 'error' && (
-                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 text-sm animate-in fade-in slide-in-from-top-2">
-                  <AlertTriangle className="shrink-0 mt-0.5" size={16} />
-                  <p><strong>Erro:</strong> {errorMessage}</p>
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex flex-col gap-1 text-red-600 text-sm animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertTriangle size={16} />
+                    <span>{errorMessage}</span>
+                  </div>
+                  <p className="text-xs opacity-80 ml-6">{errorDetails}</p>
                 </div>
               )}
               
@@ -138,8 +155,8 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
             <div className="py-12 flex flex-col items-center gap-4 animate-in fade-in">
               <Loader2 className="h-12 w-12 text-[#660099] animate-spin" />
               <div className="text-center">
-                <p className="text-gray-900 font-bold">Validando conexão...</p>
-                <p className="text-gray-400 text-sm">Aguardando resposta da PixUp</p>
+                <p className="text-gray-900 font-bold">Processando...</p>
+                <p className="text-gray-400 text-sm">Comunicando com o banco</p>
               </div>
             </div>
           )}
