@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useRef, useState } from 'react';
+import PaymentModal from './PaymentModal';
 
 const RechargeSection = () => {
   const cardsRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState("");
 
   const offers = [
     { value: '20,00', bonus: '2GB', apps: '' },
@@ -24,6 +27,11 @@ const RechargeSection = () => {
       highlight: false 
     },
   ];
+
+  const handleRechargeClick = (value: string) => {
+    setSelectedAmount(value);
+    setIsModalOpen(true);
+  };
 
   const scrollToOffers = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -87,7 +95,10 @@ const RechargeSection = () => {
                   </p>
                 )}
               </div>
-              <button className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-4 px-10 rounded-xl w-full text-lg transition-all active:scale-95">
+              <button 
+                onClick={() => handleRechargeClick(offer.value)}
+                className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-4 px-10 rounded-xl w-full text-lg transition-all active:scale-95"
+              >
                 Recarregue
               </button>
             </div>
@@ -105,6 +116,12 @@ const RechargeSection = () => {
           ></div>
         ))}
       </div>
+
+      <PaymentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        amount={selectedAmount} 
+      />
     </section>
   );
 };
