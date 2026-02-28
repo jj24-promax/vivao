@@ -10,8 +10,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Smartphone } from "lucide-react";
-import { showSuccess } from "@/utils/toast";
+import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
+import { showSuccess, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { PaymentResponse } from "@/services/PixUpService";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -21,13 +23,15 @@ interface CheckoutModalProps {
 
 const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'pix_ready' | 'success'>('idle');
+  const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setPhoneNumber("");
         setStatus('idle');
+        setPaymentData(null);
       }, 300);
     }
   }, [isOpen]);
@@ -40,36 +44,49 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setPhoneNumber(formatted);
+    setPhoneNumber(formatPhone(e.target.value));
   };
 
   const isPhoneValid = phoneNumber.replace(/\D/g, "").length === 11;
 
-  const handleConfirm = async () => {
+  const handleGeneratePix = async () => {
     if (!isPhoneValid) return;
     
     setStatus('loading');
     
-    // Simulação de processamento
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setStatus('success');
-    showSuccess("Solicitação de recarga enviada!");
+    try {
+      const { data, error } = await supabase.functions.invoke('pixup-payment', {
+        body: { amount: planValue, phone: phoneNumber }
+      });
+
+      if (error) throw error;
+
+      setPaymentData(data);
+      setStatus('pix_ready');
+      showSuccess("Pix gerado com sucesso!");
+    } catch (err: any) {
+      showError("Erro ao gerar Pix. Tente novamente.");
+      setStatus('idle');
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (paymentData?.copyPasteCode) {
+      navigator.clipboard.writeText(paymentData.copyPasteCode);
+      showSuccess("Código copiado!");
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-        <div className="bg-[#660099] p-8 text-white relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-          
-          <DialogHeader className="relative z-10">
+        <div className="bg-[#660099] p-8 text-white relative">
+          <DialogHeader>
             <DialogTitle className="text-2xl font-light text-white">
               Recarga de <span className="font-bold">R$ {planValue}</span>
             </DialogTitle>
-            <DialogDescription className="text-purple-100 opacity-90 text-base">
-              {status === 'success' ? 'Solicitação concluída' : 'Informe o número para receber os créditos'}
+            <DialogDescription className="text-purple-100 opacity-90">
+              {status === 'pix_ready' ? 'Escaneie o QR Code ou copie o código' : 'Informe o número para recarregar'}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -78,68 +95,53 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
           {status === 'idle' && (
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-sm font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
-                  <Smartphone size={16} className="text-[#660099]" />
-                  Número Vivo com DDD
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                  <Smartphone size={14} className="text-[#660099]" />
+                  Número Vivo
                 </label>
                 <Input
                   type="tel"
                   value={phoneNumber}
                   onChange={handlePhoneChange}
-                  placeholder="(00) 00000-0000"
-                  className="h-16 text-xl border-gray-200 focus:ring-[#660099] focus:border-[#660099] rounded-2xl bg-gray-50/50"
-                  autoFocus
+                  placeholder="(00) 90000-0000"
+                  className="h-16 text-xl border-gray-200 rounded-2xl bg-gray-50"
                 />
               </div>
-
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
-                <div className="bg-blue-500 p-1 rounded-full text-white mt-0.5">
-                  <CheckCircle2 size={14} />
-                </div>
-                <p className="text-sm text-blue-800 leading-tight">
-                  Você receberá <span className="font-bold">Bônus de Internet</span> imediatamente após a confirmação.
-                </p>
-              </div>
-
               <Button
-                onClick={handleConfirm}
+                onClick={handleGeneratePix}
                 disabled={!isPhoneValid}
-                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl transition-all shadow-lg shadow-purple-100 active:scale-[0.98]"
+                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl shadow-lg"
               >
-                Confirmar Recarga
+                Gerar Pix
               </Button>
             </div>
           )}
 
           {status === 'loading' && (
-            <div className="py-16 flex flex-col items-center justify-center space-y-6 text-center">
-              <Loader2 className="h-16 w-16 text-[#660099] animate-spin" />
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-800">Processando...</p>
-                <p className="text-gray-500">Estamos validando sua solicitação.</p>
-              </div>
+            <div className="py-12 flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 text-[#660099] animate-spin" />
+              <p className="text-gray-500 font-medium">Gerando sua cobrança...</p>
             </div>
           )}
 
-          {status === 'success' && (
-            <div className="space-y-6 py-4 text-center animate-in fade-in zoom-in-95 duration-500">
-              <div className="flex justify-center">
-                <div className="bg-green-100 p-4 rounded-full">
-                  <CheckCircle2 size={48} className="text-green-600" />
-                </div>
+          {status === 'pix_ready' && paymentData && (
+            <div className="space-y-6 text-center animate-in fade-in zoom-in-95">
+              <div className="flex justify-center bg-white p-4 rounded-2xl border-2 border-gray-50 shadow-inner">
+                <img src={paymentData.qrCodeImageUrl} alt="QR Code Pix" className="w-48 h-48" />
               </div>
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-800">Tudo pronto!</p>
-                <p className="text-gray-500">
-                  Sua solicitação de recarga para o número <span className="font-bold text-gray-700">{phoneNumber}</span> foi enviada com sucesso.
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={copyToClipboard}
+                  variant="outline"
+                  className="w-full h-14 border-2 border-[#660099] text-[#660099] font-bold rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Copy size={18} /> Copiar Código Pix
+                </Button>
+                <p className="text-[11px] text-gray-400 uppercase font-bold tracking-tighter">
+                  O bônus será liberado após o pagamento
                 </p>
               </div>
-              <Button 
-                onClick={onClose}
-                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-2xl"
-              >
-                Fechar
-              </Button>
             </div>
           )}
         </div>
