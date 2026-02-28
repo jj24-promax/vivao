@@ -8,10 +8,22 @@ const RechargeSection = () => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const offers = [
-    { value: '20,00', bonus: '2GB', hasApps: false },
-    { value: '25,00', bonus: '3GB', hasApps: false },
-    { value: '30,00', bonus: '5GB', hasApps: true },
-    { value: '50,00', bonus: '10GB', hasApps: true },
+    { value: '20,00', bonus: '2GB', apps: '' },
+    { value: '25,00', bonus: '3GB', apps: '' },
+    { value: '30,00', bonus: '5GB', apps: 'Whatsapp e Instagram Grátis' },
+    { value: '50,00', bonus: '10GB', apps: 'Whatsapp e Instagram Grátis' },
+    { 
+      value: '100,00', 
+      bonus: '30GB', 
+      apps: 'Whatsapp, Instagram, TikTok e YouTube Grátis',
+      highlight: true 
+    },
+    { 
+      value: '150,00', 
+      bonus: '60GB', 
+      apps: 'Whatsapp, Instagram, TikTok, YouTube e Netflix Grátis',
+      highlight: false 
+    },
   ];
 
   const scrollToOffers = (e: React.MouseEvent) => {
@@ -49,7 +61,7 @@ const RechargeSection = () => {
         id="recharge-offers"
         ref={cardsRef} 
         onScroll={handleScroll}
-        className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-mt-24 pb-4"
+        className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-8 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-mt-24 pb-4"
       >
         {offers.map((offer, index) => (
           <div 
@@ -59,7 +71,8 @@ const RechargeSection = () => {
             <RechargeCard 
               value={offer.value} 
               bonus={offer.bonus} 
-              showAppsBonus={offer.hasApps} 
+              appsText={offer.apps}
+              isHighlight={offer.highlight}
             />
           </div>
         ))}
