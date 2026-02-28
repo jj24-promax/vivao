@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
-import { showSuccess, showError } from "@/utils/toast";
-import { paymentService } from "@/services/FuriaPayService";
+import { Loader2, CheckCircle2, Smartphone } from "lucide-react";
+import { showSuccess } from "@/utils/toast";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -23,14 +22,12 @@ interface CheckoutModalProps {
 const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [pixCode, setPixCode] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setPhoneNumber("");
         setStatus('idle');
-        setPixCode("");
       }, 300);
     }
   }, [isOpen]);
@@ -49,26 +46,16 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
 
   const isPhoneValid = phoneNumber.replace(/\D/g, "").length === 11;
 
-  const handlePixGeneration = async () => {
+  const handleConfirm = async () => {
     if (!isPhoneValid) return;
     
     setStatus('loading');
     
-    const numericValue = parseFloat(planValue.replace(',', '.'));
-    const response = await paymentService.generatePixCharge(numericValue, phoneNumber);
-
-    if (response.success && response.pixCode) {
-      setPixCode(response.pixCode);
-      setStatus('success');
-    } else {
-      setStatus('idle');
-      showError(response.error || "Não foi possível gerar o Pix. Tente novamente.");
-    }
-  };
-
-  const copyPixCode = () => {
-    navigator.clipboard.writeText(pixCode);
-    showSuccess("Código Pix copiado com sucesso!");
+    // Simulação de processamento
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    setStatus('success');
+    showSuccess("Solicitação de recarga enviada!");
   };
 
   return (
@@ -82,7 +69,7 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
               Recarga de <span className="font-bold">R$ {planValue}</span>
             </DialogTitle>
             <DialogDescription className="text-purple-100 opacity-90 text-base">
-              {status === 'success' ? 'Pagamento via Pix' : 'Informe o número para receber os créditos'}
+              {status === 'success' ? 'Solicitação concluída' : 'Informe o número para receber os créditos'}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -110,71 +97,49 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
                   <CheckCircle2 size={14} />
                 </div>
                 <p className="text-sm text-blue-800 leading-tight">
-                  Você receberá <span className="font-bold">Bônus de Internet</span> imediatamente após a confirmação do pagamento.
+                  Você receberá <span className="font-bold">Bônus de Internet</span> imediatamente após a confirmação.
                 </p>
               </div>
 
               <Button
-                onClick={handlePixGeneration}
+                onClick={handleConfirm}
                 disabled={!isPhoneValid}
                 className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl transition-all shadow-lg shadow-purple-100 active:scale-[0.98]"
               >
-                Gerar Código Pix
+                Confirmar Recarga
               </Button>
             </div>
           )}
 
           {status === 'loading' && (
             <div className="py-16 flex flex-col items-center justify-center space-y-6 text-center">
-              <div className="relative">
-                <Loader2 className="h-16 w-16 text-[#660099] animate-spin" />
-                <QrCode className="h-6 w-6 text-[#660099] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-50" />
-              </div>
+              <Loader2 className="h-16 w-16 text-[#660099] animate-spin" />
               <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-800">Gerando seu Pix...</p>
-                <p className="text-gray-500 max-w-[250px] mx-auto">Estamos preparando seu código de pagamento seguro via Furia Pay.</p>
+                <p className="text-2xl font-bold text-gray-800">Processando...</p>
+                <p className="text-gray-500">Estamos validando sua solicitação.</p>
               </div>
             </div>
           )}
 
           {status === 'success' && (
-            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
-                  <div className="w-48 h-48 bg-gray-50 flex items-center justify-center relative overflow-hidden rounded-lg">
-                    <QrCode size={160} className="text-gray-800" strokeWidth={1.5} />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-pulse" />
-                  </div>
+            <div className="space-y-6 py-4 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex justify-center">
+                <div className="bg-green-100 p-4 rounded-full">
+                  <CheckCircle2 size={48} className="text-green-600" />
                 </div>
-                <p className="text-sm text-gray-500 text-center">
-                  Escaneie o QR Code acima com o app do seu banco ou use o código abaixo.
+              </div>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-gray-800">Tudo pronto!</p>
+                <p className="text-gray-500">
+                  Sua solicitação de recarga para o número <span className="font-bold text-gray-700">{phoneNumber}</span> foi enviada com sucesso.
                 </p>
               </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Pix Copia e Cola</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 truncate text-sm text-gray-600 font-mono">
-                    {pixCode}
-                  </div>
-                  <Button 
-                    onClick={copyPixCode}
-                    className="bg-[#660099] hover:bg-[#550080] text-white p-3 h-auto rounded-xl"
-                  >
-                    <Copy size={20} />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100">
-                <Button 
-                  onClick={onClose}
-                  variant="ghost"
-                  className="w-full h-12 text-gray-400 hover:text-gray-600 font-medium"
-                >
-                  Cancelar e voltar
-                </Button>
-              </div>
+              <Button 
+                onClick={onClose}
+                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-2xl"
+              >
+                Fechar
+              </Button>
             </div>
           )}
         </div>
