@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight, FlaskConical } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { callPixupAPI } from '@/utils/payment';
 import { showSuccess, showError } from '@/utils/toast';
@@ -24,7 +24,6 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
 
-  // Resetar ao fechar
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
@@ -35,7 +34,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     }
   }, [isOpen]);
 
-  // Monitorar status do pagamento via polling ou realtime
+  // Real-time listener para confirmação automática
   useEffect(() => {
     if (step === 'pix' && paymentData?.transactionId) {
       const channel = supabase
@@ -51,7 +50,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
           (payload) => {
             if (payload.new.status === 'PAID') {
               setStep('success');
-              showSuccess("Pagamento confirmado! Sua recarga será creditada em instantes.");
+              showSuccess("Pagamento confirmado!");
             }
           }
         )
@@ -82,25 +81,16 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     try {
       const numericAmount = parseFloat(amount.replace(',', '.'));
       const externalId = `vivo_${Date.now()}`;
-      
-      // URL do Webhook (Ajuste conforme seu projeto Supabase)
       const postbackUrl = `https://rvjycrapllupubyieqae.supabase.co/functions/v1/pixup-webhook`;
 
       const data = await callPixupAPI('create_payment', {
         amount: numericAmount,
         payerQuestion: `Recarga Vivo - ${phoneNumber}`,
         external_id: externalId,
-        postbackUrl: postbackUrl,
-        split: [
-          {
-            username: "usertest",
-            percentageSplit: "10"
-          }
-        ]
+        postbackUrl: postbackUrl
       });
       
       if (data.qrcode) {
-        // Registrar transação no banco de dados local
         await supabase.from('payments').insert({
           transaction_id: data.transactionId,
           external_id: externalId,
@@ -110,7 +100,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
         });
 
         setPaymentData(data);
-        setTimeLeft(data.calendar?.expiration || 3000);
+        setTimeLeft(data.calendar?.expiration || 3600);
         setStep('pix');
       } else {
         showError(data.message || "Erro ao gerar PIX.");
@@ -120,6 +110,23 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Função apenas para teste manual do fluxo de sucesso
+  const simulateSuccess = async () => {
+    if (!paymentData?.transactionId) return;
+    
+    setLoading(true);
+    // Simula o que o webhook faria no banco de dados
+    const { error } = await supabase
+      .from('payments')
+      .update({ status: 'PAID' })
+      .eq('transaction_id', paymentData.transactionId);
+    
+    if (error) {
+      showError("Erro ao simular sucesso.");
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -209,6 +216,15 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                   <AlertCircle className="w-4 h-4" />
                   <span>Expira em: <span className="font-bold text-red-500">{formatTime(timeLeft)}</span></span>
                 </div>
+
+                {/* Botão de Simulação (Apenas para Teste) */}
+                <Button 
+                  variant="ghost"
+                  onClick={simulateSuccess}
+                  className="w-full text-xs text-gray-400 hover:text-[#660099] flex items-center justify-center gap-1"
+                >
+                  <FlaskConical size={12} /> Simular Confirmação (Teste)
+                </Button>
               </div>
             </>
           )}
