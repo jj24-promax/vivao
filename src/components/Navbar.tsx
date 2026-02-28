@@ -5,9 +5,9 @@ import React from 'react';
 const Navbar = () => {
   const menuItems = [
     { label: 'Recarregue aqui', id: 'recharge-offers', active: true },
-    { label: 'Onde recarregar', id: 'whatsapp-section', active: false },
-    { label: 'Recarga programada', id: 'scheduled-recharge', active: false },
     { label: 'Consulta de Saldo', id: 'balance-check', active: false },
+    { label: 'Recarga programada', id: 'scheduled-recharge', active: false },
+    { label: 'Onde recarregar', id: 'whatsapp-section', active: false },
     { label: 'Valores e validade', id: 'recharge-offers', active: false },
     { label: 'Dúvidas', id: 'footer-links', active: false },
   ];

@@ -21,10 +21,10 @@ const Index = () => {
         <Hero />
         <RechargeSection />
         <PaymentMethods />
+        <BalanceCheck />
         <ScheduledRecharge />
         <WhatsAppSection />
         <AppControleSection />
-        <BalanceCheck />
         <FooterLinks />
       </main>
       <Footer />
