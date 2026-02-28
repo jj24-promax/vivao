@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import InfoTooltip from './InfoTooltip';
 import CancellationAlert from './CancellationAlert';
@@ -12,19 +12,43 @@ const BalanceCheck = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Formatação: (XX) 9XXXX-XXXX
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length === 0) return "";
+    if (numbers.length <= 2) return `(${numbers}`;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "");
-    if (value.length <= 11) {
-      setPhoneNumber(value);
+    const rawValue = e.target.value;
+    const numbers = rawValue.replace(/\D/g, "");
+    
+    if (numbers.length <= 11) {
+      setPhoneNumber(formatPhone(numbers));
     }
   };
 
-  const handleConsult = async () => {
-    if (phoneNumber.length < 11) {
-      showError("Por favor, insira o número completo com DDD (11 dígitos).");
-      return;
+  // Validação em tempo real
+  useEffect(() => {
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (digits.length > 0 && digits.length < 11) {
+      setError("O número deve ter 11 dígitos (DDD + 9 + número)");
+    } else if (digits.length === 11 && digits[2] !== '9') {
+      setError("Formato inválido: o número deve começar com 9 após o DDD");
+    } else {
+      setError(null);
     }
+  }, [phoneNumber]);
+
+  const digits = phoneNumber.replace(/\D/g, "");
+  const isPhoneValid = digits.length === 11 && digits[2] === '9';
+
+  const handleConsult = async () => {
+    if (!isPhoneValid) return;
 
     setIsLoading(true);
     setBalance(null);
@@ -54,29 +78,39 @@ const BalanceCheck = () => {
           Digite seu número Vivo e receba uma mensagem com seu saldo disponível.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 max-w-md">
-          <Input 
-            type="text"
-            inputMode="numeric"
-            placeholder="DDD + Celular Vivo" 
-            value={phoneNumber}
-            onChange={handleInputChange}
-            className="h-14 border-gray-300 focus:ring-[#660099] text-lg"
-          />
-          <Button 
-            onClick={handleConsult}
-            disabled={isLoading}
-            className="bg-[#660099] hover:bg-[#550080] text-white font-bold h-14 px-10 text-lg transition-all"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Consultando
-              </>
-            ) : (
-              "Consultar"
-            )}
-          </Button>
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row gap-4 max-w-md">
+            <div className="flex-1 relative">
+              <Input 
+                type="text"
+                placeholder="(00) 90000-0000" 
+                value={phoneNumber}
+                onChange={handleInputChange}
+                className={`h-14 border-gray-300 focus:ring-[#660099] text-lg ${error ? 'border-red-500 focus:ring-red-500' : ''}`}
+              />
+            </div>
+            <Button 
+              onClick={handleConsult}
+              disabled={isLoading || !isPhoneValid}
+              className="bg-[#660099] hover:bg-[#550080] text-white font-bold h-14 px-10 text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Consultando
+                </>
+              ) : (
+                "Consultar"
+              )}
+            </Button>
+          </div>
+          
+          {error && (
+            <div className="flex items-center gap-2 text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
         {balance && (
@@ -89,7 +123,6 @@ const BalanceCheck = () => {
               <p className="text-4xl font-light text-gray-900">{balance}</p>
             </div>
             
-            {/* Alerta de cancelamento solicitado */}
             <CancellationAlert />
           </div>
         )}
