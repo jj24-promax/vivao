@@ -6,7 +6,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handler para CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -15,17 +14,19 @@ serve(async (req) => {
     const clientId = Deno.env.get("CLIENT_ID");
     const clientSecret = Deno.env.get("CLIENT_SECRET");
 
-    // Log de depuração (não exibe o valor real por segurança)
-    console.log("[pixup-proxy] Verificando variáveis de ambiente...");
-    if (!clientId) console.error("[pixup-proxy] Erro: CLIENT_ID não encontrado.");
-    if (!clientSecret) console.error("[pixup-proxy] Erro: CLIENT_SECRET não encontrado.");
-
     if (!clientId || !clientSecret) {
-      throw new Error("Credenciais da API Pixup não configuradas no Supabase.");
+      console.error("[pixup-proxy] Erro: CLIENT_ID ou CLIENT_SECRET não definidos no Supabase.");
+      return new Response(JSON.stringify({ 
+        error: "Configuração ausente", 
+        details: "As Secrets CLIENT_ID ou CLIENT_SECRET não foram encontradas ou estão vazias no painel do Supabase." 
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
     }
 
     const { action, body } = await req.json();
-    console.log(`[pixup-proxy] Ação solicitada: ${action}`);
+    console.log(`[pixup-proxy] Iniciando ação: ${action}`);
 
     // 1. Obter Token OAuth2
     const authHeader = btoa(`${clientId}:${clientSecret}`);
@@ -38,10 +39,15 @@ serve(async (req) => {
     });
 
     const tokenData = await tokenResponse.json();
+    
     if (!tokenResponse.ok) {
-      console.error("[pixup-proxy] Erro ao obter token:", tokenData);
-      return new Response(JSON.stringify({ error: "Falha na autenticação com Pixup", details: tokenData }), { 
-        status: tokenResponse.status, 
+      console.error("[pixup-proxy] Erro na autenticação Pixup:", tokenData);
+      return new Response(JSON.stringify({ 
+        error: "Falha na autenticação com a Pixup", 
+        details: tokenData,
+        hint: "Verifique se o CLIENT_ID e CLIENT_SECRET estão corretos e ativos no painel da Pixup."
+      }), { 
+        status: 401, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
@@ -59,7 +65,6 @@ serve(async (req) => {
     }
 
     // 3. Chamada Final
-    console.log(`[pixup-proxy] Chamando endpoint: ${targetUrl}`);
     const apiResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
@@ -70,14 +75,19 @@ serve(async (req) => {
     });
 
     const apiData = await apiResponse.json();
+    
+    if (!apiResponse.ok) {
+      console.error("[pixup-proxy] Erro na API Pixup:", apiData);
+    }
+
     return new Response(JSON.stringify(apiData), {
       status: apiResponse.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
   } catch (error) {
-    console.error("[pixup-proxy] Erro crítico:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[pixup-proxy] Erro inesperado:", error.message);
+    return new Response(JSON.stringify({ error: "Erro interno na Edge Function", message: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

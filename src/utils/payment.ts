@@ -9,9 +9,16 @@ export const callPixupAPI = async (action: string, body: any = {}) => {
       body: { action, body }
     });
 
-    if (error) throw error;
+    // Se houver erro na invocação (ex: 401, 500), o Supabase retorna no objeto error
+    if (error) {
+      console.error("Erro detalhado da Edge Function:", error);
+      // Tenta extrair a mensagem de erro do corpo da resposta se disponível
+      const errorMsg = error.message || "Erro desconhecido na Edge Function";
+      throw new Error(errorMsg);
+    }
+
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao chamar API Pixup:", error);
     throw error;
   }
