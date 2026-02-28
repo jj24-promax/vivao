@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import RechargeCard from './RechargeCard';
 
 const RechargeSection = () => {
   const cardsRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const offers = [
     { value: '20,00', bonus: '2GB' },
@@ -16,6 +17,18 @@ const RechargeSection = () => {
   const scrollToOffers = (e: React.MouseEvent) => {
     e.preventDefault();
     cardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  // Atualiza a bolinha ativa baseada no scroll (apenas mobile)
+  const handleScroll = () => {
+    if (cardsRef.current && window.innerWidth < 768) {
+      const scrollLeft = cardsRef.current.scrollLeft;
+      const cardWidth = cardsRef.current.offsetWidth * 0.85; // 85% é a largura do card no mobile
+      const index = Math.round(scrollLeft / cardWidth);
+      if (index !== activeIndex) {
+        setActiveIndex(index);
+      }
+    }
   };
 
   return (
@@ -33,20 +46,33 @@ const RechargeSection = () => {
         </button>
       </div>
       
+      {/* Container com scroll horizontal no mobile e grid no desktop */}
       <div 
         id="recharge-offers"
         ref={cardsRef} 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 scroll-mt-24"
+        onScroll={handleScroll}
+        className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-mt-24 pb-4"
       >
         {offers.map((offer, index) => (
-          <RechargeCard key={index} value={offer.value} bonus={offer.bonus} />
+          <div 
+            key={index} 
+            className="min-w-[85%] sm:min-w-0 snap-center"
+          >
+            <RechargeCard value={offer.value} bonus={offer.bonus} />
+          </div>
         ))}
       </div>
       
-      <div className="flex justify-center mt-12 gap-3">
-        <div className="w-3 h-3 rounded-full bg-[#660099]"></div>
-        <div className="w-3 h-3 rounded-full bg-gray-200"></div>
-        <div className="w-3 h-3 rounded-full bg-gray-200"></div>
+      {/* Indicadores de página (bolinhas) visíveis apenas no mobile */}
+      <div className="flex md:hidden justify-center mt-8 gap-3">
+        {offers.map((_, index) => (
+          <div 
+            key={index}
+            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+              activeIndex === index ? 'bg-[#660099] w-6' : 'bg-gray-200'
+            }`}
+          ></div>
+        ))}
       </div>
     </section>
   );
