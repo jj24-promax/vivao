@@ -95,7 +95,7 @@ const BalanceCheck = () => {
                 <span>Recarregue antes que a linha seja cancelada</span>
                 <button 
                   onClick={scrollToRecharge}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-900 rounded-full border border-red-200 font-bold hover:bg-red-200 hover:shadow-sm transition-all active:scale-95 group"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-900 rounded-full border border-red-300 font-bold hover:bg-red-200 hover:shadow-sm transition-all active:scale-95 group"
                 >
                   clique aqui
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
