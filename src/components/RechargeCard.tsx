@@ -20,9 +20,12 @@ const RechargeCard = ({ value, bonus }: RechargeCardProps) => {
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Oferta Vivo Pré*</p>
         </div>
         
-        <div className="mt-6 mb-8">
+        <div className="mt-6 mb-8 space-y-1">
           <p className="text-2xl font-bold text-gray-900">
             <span className="text-[#660099]">{bonus}</span> de bônus
+          </p>
+          <p className="text-sm font-medium text-gray-500">
+            Whatsapp Ilimitado
           </p>
         </div>
         
