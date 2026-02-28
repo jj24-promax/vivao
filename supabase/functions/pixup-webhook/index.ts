@@ -16,29 +16,50 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
-  const payload = await req.json()
-  const { requestBody } = payload
-  
-  console.log(`[pixup-webhook] Recebido evento: ${requestBody.transactionId} - Status: ${requestBody.status}`)
+  try {
+    const payload = await req.json()
+    const { requestBody } = payload
+    
+    const type = requestBody.transactionType; // RECEIVEPIX ou PAYMENT
+    const id = requestBody.transactionId;
+    
+    console.log(`[pixup-webhook] Evento recebido: ${type} | ID: ${id}`);
 
-  if (requestBody.status === 'PAID') {
-    // Atualiza o status do pagamento no banco de dados
-    const { error } = await supabase
-      .from('payments')
-      .update({ 
-        status: 'PAID',
-        updated_at: new Date().toISOString()
-      })
-      .eq('transaction_id', requestBody.transactionId)
-
-    if (error) {
-      console.error("[pixup-webhook] Erro ao atualizar pagamento:", error)
-      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
+    // Lógica para Cash-in (Recebimento PIX)
+    if (type === 'RECEIVEPIX' && requestBody.status === 'PAID') {
+      await supabase
+        .from('payments')
+        .update({ 
+          status: 'PAID',
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_id', id);
     }
-  }
 
-  return new Response(JSON.stringify({ success: true }), { 
-    status: 200, 
-    headers: { ...corsHeaders, "Content-Type": "application/json" } 
-  })
+    // Lógica para Cash-out (Transferência/Pagamento de saída)
+    if (type === 'PAYMENT' && requestBody.statusCode?.statusId === 1) {
+      console.log(`[pixup-webhook] Transferência aprovada: ${id}`);
+      
+      // Aqui você pode atualizar uma tabela de 'transfers' ou 'payouts' se houver
+      await supabase
+        .from('payments') // Usando a mesma tabela para simplificar, ou uma específica se preferir
+        .update({ 
+          status: 'COMPLETED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_id', id);
+    }
+
+    return new Response(JSON.stringify({ success: true }), { 
+      status: 200, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    });
+
+  } catch (error) {
+    console.error("[pixup-webhook] Erro ao processar webhook:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500, 
+      headers: corsHeaders 
+    });
+  }
 })
