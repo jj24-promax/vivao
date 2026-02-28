@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, ArrowRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 const BalanceCheck = () => {
@@ -32,13 +32,6 @@ const BalanceCheck = () => {
     setIsLoading(false);
     setBalance("R$ 0,00");
     showSuccess("Consulta realizada com sucesso!");
-  };
-
-  const scrollToRecharge = () => {
-    const element = document.getElementById('recharge-offers');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
   };
 
   return (
@@ -88,20 +81,6 @@ const BalanceCheck = () => {
           <div className="mt-8 p-6 bg-purple-50 border border-purple-100 rounded-xl animate-in fade-in slide-in-from-top-4 duration-500">
             <p className="text-sm text-[#660099] font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
             <p className="text-4xl font-light text-gray-900">{balance}</p>
-            
-            {balance === "R$ 0,00" && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-red-800 text-sm font-medium bg-red-50/50 p-3 rounded-lg border border-red-100">
-                <AlertCircle size={18} className="shrink-0 text-red-600" />
-                <span>Recarregue antes que a linha seja cancelada</span>
-                <button 
-                  onClick={scrollToRecharge}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-900 rounded-full border border-red-300 font-bold hover:bg-red-200 hover:shadow-sm transition-all active:scale-95 group"
-                >
-                  clique aqui
-                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
