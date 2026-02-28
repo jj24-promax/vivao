@@ -4,6 +4,13 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 
 const ScheduledRecharge = () => {
+  const scrollToRecharge = () => {
+    const element = document.getElementById('recharge-offers');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <section id="scheduled-recharge" className="container mx-auto px-4 py-20 scroll-mt-24">
       <div className="flex flex-col md:flex-row items-center gap-16">
@@ -23,10 +30,17 @@ const ScheduledRecharge = () => {
           <div className="pt-4 space-y-5">
             <p className="text-gray-800 font-semibold text-base">Programar recarga para:</p>
             <div className="flex flex-wrap gap-4">
-              <Button className="bg-[#660099] hover:bg-[#550080] text-white font-bold px-10 py-7 rounded-md text-base">
+              <Button 
+                onClick={scrollToRecharge}
+                className="bg-[#660099] hover:bg-[#550080] text-white font-bold px-10 py-7 rounded-md text-base transition-all active:scale-95"
+              >
                 Meu número
               </Button>
-              <Button variant="outline" className="border-[#660099] text-[#660099] hover:bg-purple-50 font-bold px-10 py-7 rounded-md text-base">
+              <Button 
+                onClick={scrollToRecharge}
+                variant="outline" 
+                className="border-[#660099] text-[#660099] hover:bg-purple-50 font-bold px-10 py-7 rounded-md text-base transition-all active:scale-95"
+              >
                 Outro número
               </Button>
             </div>
