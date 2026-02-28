@@ -20,9 +20,9 @@ serve(async (req) => {
     }
 
     const { action, body } = await req.json();
-    console.log(`[pixup-proxy] Ação: ${action}`);
+    console.log(`[pixup-proxy] Executando ação: ${action}`);
 
-    // 1. Obter Token de Acesso
+    // 1. Obter Token de Acesso (OAuth2)
     const authHeader = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch("https://api.pixupbr.com/v2/oauth/token", {
       method: "POST",
@@ -42,49 +42,37 @@ serve(async (req) => {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Gerar QRCode (Inbound PIX)
+    // 2. Mapeamento de Endpoints conforme solicitado
+    let targetUrl = "";
     if (action === 'create_payment') {
-      const paymentResponse = await fetch("https://api.pixupbr.com/v2/pix/qrcode", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      const paymentData = await paymentResponse.json();
-      return new Response(JSON.stringify(paymentData), {
-        status: paymentResponse.status,
+      targetUrl = "https://api.pixupbr.com/v2/pix/qrcode"; // Endpoint de QR Code
+    } else if (action === 'make_payment') {
+      targetUrl = "https://api.pixupbr.com/v2/pix/payment"; // Endpoint de Pagamento
+    } else {
+      return new Response(JSON.stringify({ error: "Ação inválida" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    // 3. Fazer um Pagamento (Outbound PIX / Transferência)
-    if (action === 'make_payment') {
-      const paymentResponse = await fetch("https://api.pixupbr.com/v2/pix/payment", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
+    // 3. Chamada para a API Pixup
+    const apiResponse = await fetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
 
-      const paymentData = await paymentResponse.json();
-      return new Response(JSON.stringify(paymentData), {
-        status: paymentResponse.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    return new Response(JSON.stringify({ error: "Ação inválida" }), {
-      status: 400,
+    const apiData = await apiResponse.json();
+    return new Response(JSON.stringify(apiData), {
+      status: apiResponse.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
   } catch (error) {
-    console.error("[pixup-proxy] Erro:", error.message);
+    console.error("[pixup-proxy] Erro crítico:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
