@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import CheckoutModal from './CheckoutModal';
 
 interface RechargeCardProps {
   value: string;
@@ -9,21 +10,36 @@ interface RechargeCardProps {
 }
 
 const RechargeCard = ({ value, bonus }: RechargeCardProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-8 flex flex-col items-center text-center min-w-[250px] flex-1 shadow-sm hover:shadow-md transition-shadow">
-      <div className="mb-4">
-        <h3 className="text-4xl font-bold text-black">R$ {value}</h3>
-        <p className="text-sm text-gray-600 mt-1">Oferta Vivo Pré*</p>
+    <>
+      <div className="bg-white border border-gray-100 rounded-2xl p-8 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-300 group">
+        <div className="mb-2">
+          <h3 className="text-[42px] font-bold text-gray-900 tracking-tight">R$ {value}</h3>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Oferta Vivo Pré*</p>
+        </div>
+        
+        <div className="mt-6 mb-8">
+          <p className="text-2xl font-bold text-gray-900">
+            <span className="text-[#660099]">{bonus}</span> de bônus
+          </p>
+        </div>
+        
+        <Button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-7 px-10 rounded-xl w-full text-lg shadow-lg shadow-purple-100 transition-all active:scale-95"
+        >
+          Recarregue
+        </Button>
       </div>
-      
-      <div className="mb-8">
-        <p className="text-2xl font-bold text-black">{bonus} de bônus</p>
-      </div>
-      
-      <Button className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-3 px-8 rounded-md w-full sm:w-auto">
-        Recarregue
-      </Button>
-    </div>
+
+      <CheckoutModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        planValue={value} 
+      />
+    </>
   );
 };
 
