@@ -30,8 +30,8 @@ serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `vivo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Usando o endpoint de 'charge' que é o padrão da infra Woovi/PixUp para Pix Dinâmico
-    const endpoint = "https://api.woovi.com/v1/charge";
+    // Endpoint completo da Woovi/PixUp
+    const endpoint = "https://api.woovi.com/api/v1/charge";
     
     console.log(`[pixup-payment] Chamando Pix Up: ${endpoint}`);
 
@@ -43,7 +43,7 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        value: valueInCents, // Na rota /charge usa-se 'value'
+        value: valueInCents,
         correlationID,
         type: 'DYNAMIC',
         comment: `Recarga Vivo - ${cleanPhone}`,
@@ -53,7 +53,6 @@ serve(async (req) => {
       }),
     });
 
-    // Lendo como texto primeiro para evitar erro de parse se vier HTML
     const responseText = await response.text();
     console.log(`[pixup-payment] Status: ${response.status}`);
 
@@ -64,19 +63,21 @@ serve(async (req) => {
       console.error("[pixup-payment] Resposta não-JSON recebida:", responseText.substring(0, 200));
       return new Response(JSON.stringify({ 
         error: "Erro de Comunicação", 
-        details: `A API retornou um formato inesperado (HTML). Status: ${response.status}` 
+        details: `A API retornou HTML (404). Verifique se o endpoint ${endpoint} está correto para sua conta.` 
       }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (!response.ok) {
       console.error("[pixup-payment] Erro Pix Up:", responseData);
+      // Trata o erro específico de appID inválido que a Woovi/OpenPix retorna
+      const errorMsg = responseData.errors?.[0]?.message || responseData.error || responseData.message || "Falha na requisição";
+      
       return new Response(JSON.stringify({ 
         error: "Erro na Plataforma Pix Up", 
-        details: responseData.error || responseData.message || responseData.errors?.[0]?.message || "Falha na requisição"
+        details: errorMsg
       }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Na rota /charge, os dados vêm dentro do objeto 'charge'
     const charge = responseData.charge;
     return new Response(JSON.stringify({
       transactionId: charge.correlationID,
