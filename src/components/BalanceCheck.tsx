@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import InfoTooltip from './InfoTooltip';
+import CancellationAlert from './CancellationAlert';
 
 const BalanceCheck = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -79,12 +80,17 @@ const BalanceCheck = () => {
         </div>
 
         {balance && (
-          <div className="mt-8 p-6 bg-purple-50 border border-purple-100 rounded-xl animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm text-[#660099] font-bold uppercase tracking-wider">Saldo Disponível</p>
-              <InfoTooltip />
+          <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="p-6 bg-purple-50 border border-purple-100 rounded-xl">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-sm text-[#660099] font-bold uppercase tracking-wider">Saldo Disponível</p>
+                <InfoTooltip />
+              </div>
+              <p className="text-4xl font-light text-gray-900">{balance}</p>
             </div>
-            <p className="text-4xl font-light text-gray-900">{balance}</p>
+            
+            {/* Alerta de cancelamento solicitado */}
+            <CancellationAlert />
           </div>
         )}
       </div>
