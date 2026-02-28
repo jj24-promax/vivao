@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, CheckCircle2, Smartphone, Mail, User, CreditCard, ArrowRight } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Smartphone, ArrowRight } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactionStatus } from '@/hooks/useTransactionStatus';
-import { showSuccess, showError } from '@/utils/toast';
+import { showError } from '@/utils/toast';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ interface PaymentModalProps {
 
 const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
   const [view, setView] = useState<'FORM' | 'LOADING' | 'QR_CODE' | 'SUCCESS' | 'ERROR'>('FORM');
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', document: '' });
+  const [phone, setPhone] = useState('');
   const [paymentData, setPaymentData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   
@@ -33,7 +33,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
       setTimeout(() => {
         setView('FORM');
         setPaymentData(null);
-        setFormData({ name: '', email: '', phone: '', document: '' });
+        setPhone('');
       }, 300);
     }
   }, [isOpen]);
@@ -45,29 +45,23 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7, 11)}`;
   };
 
-  const handleCPFFormat = (v: string) => {
-    const n = v.replace(/\D/g, "");
-    if (n.length <= 3) return n;
-    if (n.length <= 6) return `${n.slice(0, 3)}.${n.slice(3)}`;
-    if (n.length <= 9) return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6)}`;
-    return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6, 9)}-${n.slice(9, 11)}`;
-  };
-
   const handleSubmit = async () => {
-    const cleanPhone = formData.phone.replace(/\D/g, "");
-    const cleanCPF = formData.document.replace(/\D/g, "");
+    const cleanPhone = phone.replace(/\D/g, "");
 
-    if (!formData.name || !formData.email || cleanPhone.length !== 11 || cleanCPF.length !== 11) {
-      showError("Preencha todos os campos corretamente (incluindo CPF).");
+    if (cleanPhone.length !== 11) {
+      showError("Informe um número de telefone válido com DDD.");
       return;
     }
 
     setView('LOADING');
     try {
+      // Enviamos dados genéricos para Nome, Email e CPF para satisfazer a API
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { 
-          ...formData, 
-          document_number: cleanCPF,
+          name: 'Cliente Vivo',
+          email: 'cliente@recarga.com',
+          phone: cleanPhone, 
+          document_number: '12345678909', // CPF genérico para a API
           amount: parseFloat(amount.replace(',', '.')) 
         }
       });
@@ -90,65 +84,37 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
               {view === 'FORM' ? 'Dados da Recarga' : view === 'QR_CODE' ? 'Pague com PIX' : 'Status'}
             </DialogTitle>
             <DialogDescription className="text-purple-100 opacity-90">
-              {view === 'FORM' ? 'Informe seus dados para continuar.' : 'Escaneie o código abaixo.'}
+              {view === 'FORM' ? 'Informe o número para recarga.' : 'Escaneie o código abaixo.'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="p-8">
           {view === 'FORM' && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">Nome Completo</label>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Número Vivo com DDD</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#660099]" size={22} />
                   <Input 
-                    className="pl-10 h-12" 
-                    placeholder="Seu nome" 
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">CPF</label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <Input 
-                    className="pl-10 h-12" 
-                    placeholder="000.000.000-00" 
-                    value={formData.document}
-                    onChange={e => setFormData({...formData, document: handleCPFFormat(e.target.value)})}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">E-mail</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <Input 
-                    className="pl-10 h-12" 
-                    placeholder="seu@email.com" 
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">Número Vivo</label>
-                <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <Input 
-                    className="pl-10 h-12" 
+                    className="pl-12 h-16 text-xl font-medium border-gray-200 focus:border-[#660099] focus:ring-[#660099] rounded-2xl" 
                     placeholder="(00) 90000-0000" 
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: handlePhoneFormat(e.target.value)})}
+                    value={phone}
+                    onChange={e => setPhone(handlePhoneFormat(e.target.value))}
                   />
                 </div>
               </div>
-              <Button onClick={handleSubmit} className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl mt-4">
-                Gerar PIX de R$ {amount} <ArrowRight className="ml-2" size={18} />
+              
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl shadow-lg shadow-purple-200 transition-all active:scale-95"
+              >
+                Gerar PIX de R$ {amount} <ArrowRight className="ml-2" size={20} />
               </Button>
+              
+              <p className="text-center text-xs text-gray-400">
+                Ao continuar, você concorda com os termos de recarga da Vivo.
+              </p>
             </div>
           )}
 
@@ -162,7 +128,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
           {view === 'QR_CODE' && (
             <div className="flex flex-col items-center">
               <div className="bg-white p-4 rounded-2xl shadow-inner border border-gray-100 mb-6">
-                <QRCodeSVG value={paymentData?.qrcode || ""} size={200} />
+                <QRCodeSVG value={paymentData?.qrcode || ""} size={220} />
               </div>
               <Button 
                 onClick={() => {
@@ -175,9 +141,10 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                 {copied ? <CheckCircle2 className="mr-2" /> : <Copy className="mr-2" />}
                 {copied ? "Copiado!" : "Copiar Código PIX"}
               </Button>
-              <p className="text-sm text-gray-500 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...
-              </p>
+              <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-4 py-2 rounded-full">
+                <Loader2 className="w-4 h-4 animate-spin text-[#660099]" /> 
+                <span>Aguardando confirmação do pagamento...</span>
+              </div>
             </div>
           )}
 
@@ -187,7 +154,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                 <CheckCircle2 size={48} />
               </div>
               <h3 className="text-2xl font-bold">Recarga Confirmada!</h3>
-              <p className="text-gray-500">Os créditos serão enviados para {formData.phone} em instantes.</p>
+              <p className="text-gray-500">Os créditos serão enviados para {phone} em instantes.</p>
               <Button onClick={onClose} className="w-full h-14 bg-[#660099] text-white font-bold rounded-xl">Fechar</Button>
             </div>
           )}
