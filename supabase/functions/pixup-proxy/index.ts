@@ -15,20 +15,16 @@ serve(async (req) => {
     const clientSecret = Deno.env.get("CLIENT_SECRET");
 
     if (!clientId || !clientSecret) {
-      console.error("[pixup-proxy] Erro: CLIENT_ID ou CLIENT_SECRET não definidos no Supabase.");
-      return new Response(JSON.stringify({ 
-        error: "Configuração ausente", 
-        details: "As Secrets CLIENT_ID ou CLIENT_SECRET não foram encontradas ou estão vazias no painel do Supabase." 
-      }), { 
+      return new Response(JSON.stringify({ error: "Configuração ausente (CLIENT_ID/SECRET)" }), { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
     const { action, body } = await req.json();
-    console.log(`[pixup-proxy] Iniciando ação: ${action}`);
+    console.log(`[pixup-proxy] Ação: ${action} | Body:`, JSON.stringify(body));
 
-    // 1. Obter Token OAuth2
+    // 1. Obter Token
     const authHeader = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch("https://api.pixupbr.com/v2/oauth/token", {
       method: "POST",
@@ -39,36 +35,24 @@ serve(async (req) => {
     });
 
     const tokenData = await tokenResponse.json();
-    
     if (!tokenResponse.ok) {
-      console.error("[pixup-proxy] Erro na autenticação Pixup:", tokenData);
-      return new Response(JSON.stringify({ 
-        error: "Falha na autenticação com a Pixup", 
-        details: tokenData,
-        hint: "Verifique se o CLIENT_ID e CLIENT_SECRET estão corretos e ativos no painel da Pixup."
-      }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
+      console.error("[pixup-proxy] Erro Token:", tokenData);
+      return new Response(JSON.stringify(tokenData), { status: tokenResponse.status, headers: corsHeaders });
     }
 
-    const accessToken = tokenData.access_token;
-
-    // 2. Definir Endpoint
+    // 2. Endpoint
     let targetUrl = "";
     if (action === 'create_payment') {
       targetUrl = "https://api.pixupbr.com/v2/pix/qrcode";
     } else if (action === 'make_payment') {
       targetUrl = "https://api.pixupbr.com/v2/pix/payment";
-    } else {
-      throw new Error(`Ação inválida: ${action}`);
     }
 
-    // 3. Chamada Final
+    // 3. Chamada API
     const apiResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        "Authorization": `Bearer ${tokenData.access_token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(body)
@@ -77,19 +61,25 @@ serve(async (req) => {
     const apiData = await apiResponse.json();
     
     if (!apiResponse.ok) {
-      console.error("[pixup-proxy] Erro na API Pixup:", apiData);
+      console.error(`[pixup-proxy] Erro API Pixup (${apiResponse.status}):`, JSON.stringify(apiData));
+      // Retornamos o erro original da Pixup para o frontend ver
+      return new Response(JSON.stringify({
+        error: "Erro na API Pixup",
+        status: apiResponse.status,
+        details: apiData
+      }), { 
+        status: apiResponse.status, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
     }
 
     return new Response(JSON.stringify(apiData), {
-      status: apiResponse.status,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
   } catch (error) {
-    console.error("[pixup-proxy] Erro inesperado:", error.message);
-    return new Response(JSON.stringify({ error: "Erro interno na Edge Function", message: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    console.error("[pixup-proxy] Erro:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
   }
 })
