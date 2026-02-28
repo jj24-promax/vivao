@@ -17,7 +17,7 @@ const FooterLinks = () => {
       title: "DÚVIDAS",
       desc: "Acesse nosso FAQ e tire todas as suas dúvidas.",
       action: "Confira",
-      href: "#"
+      href: "https://recarga.vivo.com.br/recarga/duvidas"
     },
     {
       icon: <img src="/vivo-regulamentos-icon.png" alt="Regulamentos" className="w-10 h-10" />,
