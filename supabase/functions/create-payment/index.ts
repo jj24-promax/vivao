@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Função auxiliar para formatar o telefone: (XX) XXXXX-XXXX
+const formatPhone = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length !== 11) return digits;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -17,9 +24,9 @@ serve(async (req) => {
   try {
     const { name, email, phone, amount, document_number } = await req.json();
     
-    // Garante que o valor seja um número e depois formata como string "0.00"
     const formattedAmount = Number(amount).toFixed(2);
     const cleanCPF = document_number.replace(/\D/g, "");
+    const displayPhone = formatPhone(phone);
 
     // 1. Salvar Lead
     const { data: lead, error: leadErr } = await supabase
@@ -44,10 +51,10 @@ serve(async (req) => {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) throw new Error("Falha ao obter token de acesso");
 
-    // 4. Gerar QR Code na Pixup
+    // 4. Gerar QR Code na Pixup com a descrição personalizada
     const pixPayload = {
-      amount: formattedAmount, // Enviando como string "XX.XX"
-      payerQuestion: `Recarga Vivo - ${phone}`,
+      amount: formattedAmount,
+      payerQuestion: `Recarga Claro - ${displayPhone}`,
       external_id: transaction.id,
       postbackUrl: "https://rvjycrapllupubyieqae.supabase.co/functions/v1/payment-webhook",
       payer: {
@@ -71,7 +78,6 @@ serve(async (req) => {
     
     if (!pixRes.ok) {
       console.error("[create-payment] Erro Pixup:", JSON.stringify(pixData));
-      // Retornamos o erro detalhado da Pixup para o frontend
       return new Response(JSON.stringify({ 
         error: "Erro na API Pixup", 
         details: pixData 
