@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle, AlertTriangle, Terminal, Database } from "lucide-react";
+import { Loader2, Terminal } from "lucide-react";
 import { callPixupAPI } from '@/utils/payment';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,10 +15,12 @@ const ApiTest = () => {
   useEffect(() => {
     const checkSupabase = async () => {
       try {
-        const { error } = await supabase.from('payments').select('count').limit(1);
+        // Verificando a tabela transactions que acabamos de criar
+        const { error } = await supabase.from('transactions').select('count').limit(1);
         if (error) throw error;
         setSupabaseStatus('connected');
       } catch (err) {
+        console.error("Erro ao conectar com Supabase:", err);
         setSupabaseStatus('error');
       }
     };
@@ -39,7 +41,6 @@ const ApiTest = () => {
       setResponse(data);
       setPixupStatus('success');
     } catch (error: any) {
-      // Tenta parsear o erro se for JSON
       try {
         const parsedError = JSON.parse(error.message);
         setResponse(parsedError);
@@ -58,6 +59,12 @@ const ApiTest = () => {
             <div className="flex items-center gap-2">
               <Terminal size={20} className="text-gray-500" />
               Diagnóstico de API
+            </div>
+            <div className="flex items-center gap-2 text-xs font-normal">
+              Status DB: 
+              <span className={supabaseStatus === 'connected' ? 'text-green-600' : 'text-red-600'}>
+                {supabaseStatus === 'connected' ? 'Conectado' : 'Erro'}
+              </span>
             </div>
           </CardTitle>
         </CardHeader>

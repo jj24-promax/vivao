@@ -28,26 +28,12 @@ serve(async (req) => {
     // Lógica para Cash-in (Recebimento PIX)
     if (type === 'RECEIVEPIX' && requestBody.status === 'PAID') {
       await supabase
-        .from('payments')
+        .from('transactions')
         .update({ 
           status: 'PAID',
           updated_at: new Date().toISOString()
         })
-        .eq('transaction_id', id);
-    }
-
-    // Lógica para Cash-out (Transferência/Pagamento de saída)
-    if (type === 'PAYMENT' && requestBody.statusCode?.statusId === 1) {
-      console.log(`[pixup-webhook] Transferência aprovada: ${id}`);
-      
-      // Aqui você pode atualizar uma tabela de 'transfers' ou 'payouts' se houver
-      await supabase
-        .from('payments') // Usando a mesma tabela para simplificar, ou uma específica se preferir
-        .update({ 
-          status: 'COMPLETED',
-          updated_at: new Date().toISOString()
-        })
-        .eq('transaction_id', id);
+        .eq('gateway_transaction_id', id);
     }
 
     return new Response(JSON.stringify({ success: true }), { 
