@@ -5,8 +5,8 @@ import RechargeCard from './RechargeCard';
 
 const RechargeSection = () => {
   const offers = [
-    { value: '20,00', bonus: '1GB' },
-    { value: '25,00', bonus: '2GB' },
+    { value: '20,00', bonus: '2GB' },
+    { value: '25,00', bonus: '3GB' },
     { value: '30,00', bonus: '5GB' },
     { value: '17,00', bonus: '500MB' },
   ];
