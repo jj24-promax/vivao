@@ -42,9 +42,27 @@ serve(async (req) => {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Criar Pagamento (QRCode)
+    // 2. Gerar QRCode (Inbound PIX)
     if (action === 'create_payment') {
       const paymentResponse = await fetch("https://api.pixupbr.com/v2/pix/qrcode", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const paymentData = await paymentResponse.json();
+      return new Response(JSON.stringify(paymentData), {
+        status: paymentResponse.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // 3. Fazer um Pagamento (Outbound PIX / Transferência)
+    if (action === 'make_payment') {
+      const paymentResponse = await fetch("https://api.pixupbr.com/v2/pix/payment", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
