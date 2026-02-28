@@ -11,7 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
+import { paymentService } from "@/services/FuriaPayService";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -22,18 +23,18 @@ interface CheckoutModalProps {
 const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [pixCode] = useState("00020101021226850014br.gov.bcb.pix0123vivotestepix20250513qrcodepix520400005303986540520.005802BR5925TELEFONICA BRASIL S.A.6009SAO PAULO62070503***6304E1A2");
+  const [pixCode, setPixCode] = useState("");
 
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setPhoneNumber("");
         setStatus('idle');
+        setPixCode("");
       }, 300);
     }
   }, [isOpen]);
 
-  // Formatação manual do telefone: (99) 99999-9999
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 2) return numbers;
@@ -50,9 +51,19 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
 
   const handlePixGeneration = async () => {
     if (!isPhoneValid) return;
+    
     setStatus('loading');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setStatus('success');
+    
+    const numericValue = parseFloat(planValue.replace(',', '.'));
+    const response = await paymentService.generatePixCharge(numericValue, phoneNumber);
+
+    if (response.success && response.pixCode) {
+      setPixCode(response.pixCode);
+      setStatus('success');
+    } else {
+      setStatus('idle');
+      showError(response.error || "Não foi possível gerar o Pix. Tente novamente.");
+    }
   };
 
   const copyPixCode = () => {
@@ -121,7 +132,7 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
               </div>
               <div className="space-y-2">
                 <p className="text-2xl font-bold text-gray-800">Gerando seu Pix...</p>
-                <p className="text-gray-500 max-w-[250px] mx-auto">Estamos preparando seu código de pagamento seguro.</p>
+                <p className="text-gray-500 max-w-[250px] mx-auto">Estamos preparando seu código de pagamento seguro via Furia Pay.</p>
               </div>
             </div>
           )}
