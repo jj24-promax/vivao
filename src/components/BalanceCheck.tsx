@@ -102,10 +102,6 @@ const BalanceCheck = () => {
                 </button>
               </div>
             )}
-
-            <p className="text-[10px] text-gray-400 mt-6 italic">
-              *Este é um valor simulado para o número {phoneNumber.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}.
-            </p>
           </div>
         )}
       </div>
