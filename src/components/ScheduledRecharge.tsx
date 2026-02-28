@@ -16,10 +16,13 @@ const ScheduledRecharge = () => {
       <div className="flex flex-col md:flex-row items-center gap-16">
         {/* Text Content */}
         <div className="flex-1 space-y-8">
-          <h2 className="text-3xl md:text-4xl font-light text-gray-800 leading-tight">
-            Recarga Programada com <br />
-            <span className="font-normal">10GB de bônus todo mês</span> é só na Vivo!
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-3xl md:text-4xl font-light text-gray-800 leading-tight">
+              Recarga Programada com <br />
+              <span className="font-normal">10GB de bônus todo mês</span> é só na Vivo!
+            </h2>
+            <p className="text-[#660099] font-bold text-lg">+ WhatsApp Ilimitado</p>
+          </div>
           
           <p className="text-gray-600 text-lg leading-relaxed max-w-xl">
             Na Recarga Programada da Vivo você define o valor e o dia que quer receber sua recarga, 

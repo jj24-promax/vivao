@@ -16,9 +16,12 @@ const WhatsAppSection = () => {
       <div className="flex flex-col md:flex-row items-center gap-16">
         <div className="flex-1 space-y-8">
           <p className="text-[#660099] font-bold text-sm tracking-widest uppercase">RECARGA RÁPIDA EM 3 PASSOS</p>
-          <h2 className="text-3xl md:text-4xl font-light text-gray-800 leading-tight">
-            Recarregue no WhatsApp, ganhe bônus de internet e muito mais!
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-3xl md:text-4xl font-light text-gray-800 leading-tight">
+              Recarregue no WhatsApp, ganhe bônus de internet e muito mais!
+            </h2>
+            <p className="text-[#660099] font-bold text-lg">Com WhatsApp Ilimitado incluso.</p>
+          </div>
           
           <div className="space-y-4">
             <p className="text-gray-600 text-base">Use o WhatsApp Vivo para recarregar seu celular. E também:</p>
