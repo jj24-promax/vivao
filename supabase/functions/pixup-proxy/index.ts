@@ -6,20 +6,11 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
     const clientId = Deno.env.get("CLIENT_ID");
     const clientSecret = Deno.env.get("CLIENT_SECRET");
-
-    if (!clientId || !clientSecret) {
-      return new Response(JSON.stringify({ error: "Configuração ausente (CLIENT_ID/SECRET)" }), { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
 
     const { action, body } = await req.json();
 
@@ -34,26 +25,24 @@ serve(async (req) => {
     });
 
     const tokenData = await tokenResponse.json();
-    if (!tokenResponse.ok) {
-      return new Response(JSON.stringify(tokenData), { status: tokenResponse.status, headers: corsHeaders });
-    }
+    if (!tokenResponse.ok) return new Response(JSON.stringify(tokenData), { status: tokenResponse.status, headers: corsHeaders });
 
-    // 2. Endpoint
-    let targetUrl = "";
+    // 2. Preparar Payload
     if (action === 'create_payment') {
-      targetUrl = "https://api.pixupbr.com/v2/pix/qrcode";
-      // Garante que o payer exista para testes
+      body.amount = Number(body.amount).toFixed(2); // Garante formato "1.00"
       if (!body.payer) {
         body.payer = {
           name: "Teste Dyad",
           document: "12345678909"
         };
       }
-    } else if (action === 'make_payment') {
-      targetUrl = "https://api.pixupbr.com/v2/pix/payment";
     }
 
     // 3. Chamada API
+    const targetUrl = action === 'create_payment' 
+      ? "https://api.pixupbr.com/v2/pix/qrcode" 
+      : "https://api.pixupbr.com/v2/pix/payment";
+
     const apiResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
@@ -65,8 +54,15 @@ serve(async (req) => {
 
     const apiData = await apiResponse.json();
     
+    if (!apiResponse.ok) {
+      return new Response(JSON.stringify({ error: "Erro Pixup", details: apiData }), { 
+        status: 400, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
     return new Response(JSON.stringify(apiData), {
-      status: apiResponse.status,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
