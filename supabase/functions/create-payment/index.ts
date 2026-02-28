@@ -15,12 +15,12 @@ serve(async (req) => {
   )
 
   try {
-    const { name, email, phone, amount } = await req.json();
+    const { name, email, phone, amount, document_number } = await req.json();
 
     // 1. Salvar Lead
     const { data: lead, error: leadErr } = await supabase
       .from('leads')
-      .insert({ name, email, phone })
+      .insert({ name, email, phone, document_number })
       .select()
       .single();
     if (leadErr) throw leadErr;
@@ -33,14 +33,14 @@ serve(async (req) => {
       .single();
     if (transErr) throw transErr;
 
-    // 3. Obter Token (Chamando a função interna)
+    // 3. Obter Token
     const tokenRes = await fetch("https://rvjycrapllupubyieqae.supabase.co/functions/v1/get-payment-token", {
       method: "POST"
     });
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) throw new Error("Falha ao obter token de pagamento");
 
-    // 4. Gerar QR Code na Pixup
+    // 4. Gerar QR Code na Pixup (Incluindo o objeto payer)
     const pixRes = await fetch("https://api.pixupbr.com/v2/pix/qrcode", {
       method: "POST",
       headers: {
@@ -51,14 +51,21 @@ serve(async (req) => {
         amount: amount,
         payerQuestion: `Recarga Vivo - ${phone}`,
         external_id: transaction.id,
-        postbackUrl: "https://rvjycrapllupubyieqae.supabase.co/functions/v1/payment-webhook"
+        postbackUrl: "https://rvjycrapllupubyieqae.supabase.co/functions/v1/payment-webhook",
+        payer: {
+          name: name,
+          document: document_number
+        }
       })
     });
 
     const pixData = await pixRes.json();
-    if (!pixRes.ok) throw new Error(pixData.message || "Erro na Pixup");
+    if (!pixRes.ok) {
+      console.error("[create-payment] Erro Pixup:", pixData);
+      throw new Error(pixData.message || "Erro na Pixup ao gerar QR Code");
+    }
 
-    // 5. Atualizar Transação com ID do Gateway
+    // 5. Atualizar Transação
     await supabase
       .from('transactions')
       .update({ 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight, Mail, User } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Smartphone, Mail, User, CreditCard, ArrowRight } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactionStatus } from '@/hooks/useTransactionStatus';
@@ -18,7 +18,7 @@ interface PaymentModalProps {
 
 const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
   const [view, setView] = useState<'FORM' | 'LOADING' | 'QR_CODE' | 'SUCCESS' | 'ERROR'>('FORM');
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', document: '' });
   const [paymentData, setPaymentData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   
@@ -33,7 +33,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
       setTimeout(() => {
         setView('FORM');
         setPaymentData(null);
-        setFormData({ name: '', email: '', phone: '' });
+        setFormData({ name: '', email: '', phone: '', document: '' });
       }, 300);
     }
   }, [isOpen]);
@@ -45,9 +45,20 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7, 11)}`;
   };
 
+  const handleCPFFormat = (v: string) => {
+    const n = v.replace(/\D/g, "");
+    if (n.length <= 3) return n;
+    if (n.length <= 6) return `${n.slice(0, 3)}.${n.slice(3)}`;
+    if (n.length <= 9) return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6)}`;
+    return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6, 9)}-${n.slice(9, 11)}`;
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.email || formData.phone.replace(/\D/g, "").length !== 11) {
-      showError("Preencha todos os campos corretamente.");
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    const cleanCPF = formData.document.replace(/\D/g, "");
+
+    if (!formData.name || !formData.email || cleanPhone.length !== 11 || cleanCPF.length !== 11) {
+      showError("Preencha todos os campos corretamente (incluindo CPF).");
       return;
     }
 
@@ -56,6 +67,7 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { 
           ...formData, 
+          document_number: cleanCPF,
           amount: parseFloat(amount.replace(',', '.')) 
         }
       });
@@ -95,6 +107,18 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
                     placeholder="Seu nome" 
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">CPF</label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input 
+                    className="pl-10 h-12" 
+                    placeholder="000.000.000-00" 
+                    value={formData.document}
+                    onChange={e => setFormData({...formData, document: handleCPFFormat(e.target.value)})}
                   />
                 </div>
               </div>
