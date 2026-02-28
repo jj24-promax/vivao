@@ -18,7 +18,7 @@ serve(async (req) => {
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
     
     if (!API_KEY) {
-      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada nas variáveis de ambiente.");
+      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada.");
       return new Response(JSON.stringify({ error: "Configuração PIXUP_API_KEY ausente." }), { 
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
@@ -30,17 +30,16 @@ serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `vivo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Tentando o domínio oficial da OpenPix/Woovi
-    const baseUrl = "https://api.openpix.com.br/v1";
-    const endpoint = `${baseUrl}/charge`;
+    // URL CORRETA: Adicionado o prefixo /api/ antes do /v1/
+    const baseUrl = "https://api.openpix.com.br";
+    const endpoint = `${baseUrl}/api/v1/charge`;
     
     console.log(`[pixup-payment] Chamando endpoint: ${endpoint}`);
-    console.log(`[pixup-payment] Payload: value=${valueInCents}, correlationID=${correlationID}`);
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': API_KEY.trim(), // Garantindo que não haja espaços
+        'Authorization': API_KEY.trim(),
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -57,7 +56,6 @@ serve(async (req) => {
 
     const contentType = response.headers.get("content-type");
     console.log(`[pixup-payment] Status da resposta: ${response.status}`);
-    console.log(`[pixup-payment] Content-Type: ${contentType}`);
 
     if (contentType && contentType.includes("application/json")) {
       const responseData = await response.json();
@@ -66,11 +64,10 @@ serve(async (req) => {
         console.error("[pixup-payment] Erro retornado pela API:", responseData);
         return new Response(JSON.stringify({ 
           error: "Erro na API de Pagamento", 
-          details: responseData.error || responseData.message || "Erro desconhecido"
+          details: responseData.error || responseData.message || "Erro de validação"
         }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // Mapeamento do sucesso
       const charge = responseData.charge;
       return new Response(JSON.stringify({
         transactionId: charge.correlationID,
@@ -83,11 +80,12 @@ serve(async (req) => {
 
     } else {
       const errorText = await response.text();
-      console.error("[pixup-payment] Resposta não-JSON. Início do conteúdo:", errorText.substring(0, 300));
+      console.error("[pixup-payment] Resposta não-JSON. Status:", response.status);
+      console.error("[pixup-payment] Início do conteúdo:", errorText.substring(0, 200));
       
       return new Response(JSON.stringify({ 
-        error: `O gateway retornou status ${response.status} (Não-JSON).`,
-        debug: "Verifique se a URL e a API Key estão corretas."
+        error: `Erro ${response.status}: O servidor de pagamento não reconheceu o caminho.`,
+        debug: "Verifique se a URL /api/v1/charge está correta para sua conta."
       }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
