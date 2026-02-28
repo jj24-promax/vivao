@@ -22,24 +22,39 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, phone } = await req.json();
+    const body = await req.json();
+    const { amount, phone } = body;
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
 
     if (!API_KEY) {
       console.error("[pixup-payment] Erro: PIXUP_API_KEY não encontrada nos segredos.");
-      throw new Error("Configuração de API ausente.");
+      return new Response(JSON.stringify({ error: "Configuração de API ausente no servidor." }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      });
     }
 
-    // Gerando um correlationID único com timestamp + string aleatória + telefone
-    const randomSuffix = Math.random().toString(36).substring(2, 7);
-    const cleanPhone = phone.replace(/\D/g, '');
-    const correlationID = `vivo_${Date.now()}_${randomSuffix}_${cleanPhone}`;
+    // Limpeza e validação do valor (ex: "100,00" -> 10000)
+    const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
+    const amountInCents = Math.round(parseFloat(cleanAmount) * 100);
 
-    console.log(`[pixup-payment] Gerando Pix único: ${correlationID}`);
+    if (isNaN(amountInCents) || amountInCents <= 0) {
+      console.error("[pixup-payment] Valor inválido recebido:", amount);
+      return new Response(JSON.stringify({ error: "Valor de recarga inválido." }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    // Gerando um correlationID único e curto
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const correlationID = `v_${Date.now()}_${randomSuffix}`;
+
+    console.log(`[pixup-payment] Criando cobrança: ${correlationID} | Valor: ${amountInCents} cents | Fone: ${cleanPhone}`);
 
     const baseUrl = "https://api.woovi.com/v1";
-    const amountInCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
-
+    
     const response = await fetch(`${baseUrl}/pix`, {
       method: 'POST',
       headers: {
@@ -53,25 +68,29 @@ serve(async (req) => {
         type: 'DYNAMIC',
         additionalInfo: [
           { name: 'Serviço', value: 'Recarga Vivo' },
-          { name: 'Telefone', value: phone }
+          { name: 'Telefone', value: cleanPhone }
         ]
       }),
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("[pixup-payment] Erro na API PixUp:", errorData);
-      throw new Error(errorData.error || "Erro ao gerar cobrança no gateway.");
+      console.error("[pixup-payment] Erro API Woovi:", responseData);
+      return new Response(JSON.stringify({ 
+        error: responseData.error || "Erro na comunicação com o gateway de pagamento." 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: response.status,
+      });
     }
 
-    const data = await response.json();
-    
     const payment: PaymentResponse = {
-      transactionId: data.pix.correlationID,
-      copyPasteCode: data.pix.brCode,
-      qrCodeImageUrl: data.pix.qrCodeImage,
-      amount: data.pix.value / 100,
-      expiresAt: data.pix.expiresDate,
+      transactionId: responseData.pix.correlationID,
+      copyPasteCode: responseData.pix.brCode,
+      qrCodeImageUrl: responseData.pix.qrCodeImage,
+      amount: responseData.pix.value / 100,
+      expiresAt: responseData.pix.expiresDate,
       status: 'PENDING'
     };
 
@@ -81,10 +100,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("[pixup-payment] Erro crítico:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[pixup-payment] Erro inesperado:", error);
+    return new Response(JSON.stringify({ error: "Ocorreu um erro interno ao processar o Pix." }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500,
     });
   }
 })

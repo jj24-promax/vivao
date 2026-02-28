@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
+import { Loader2, Smartphone, Copy } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentResponse } from "@/services/PixUpService";
@@ -59,13 +59,23 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
         body: { amount: planValue, phone: phoneNumber }
       });
 
-      if (error) throw error;
+      // Se houver erro na chamada da função
+      if (error) {
+        const errorMsg = error.message || "Erro de conexão com o servidor";
+        throw new Error(errorMsg);
+      }
+
+      // Se a função retornou um erro no corpo do JSON
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setPaymentData(data);
       setStatus('pix_ready');
       showSuccess("Pix gerado com sucesso!");
     } catch (err: any) {
-      showError("Erro ao gerar Pix. Tente novamente.");
+      console.error("[CheckoutModal] Erro:", err);
+      showError(err.message || "Erro ao gerar Pix. Tente novamente.");
       setStatus('idle');
     }
   };
