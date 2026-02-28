@@ -30,8 +30,8 @@ serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `vivo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Endpoint específico da Pix Up / Woovi
-    const endpoint = "https://api.woovi.com/v1/pix";
+    // Usando o endpoint de 'charge' que é o padrão da infra Woovi/PixUp para Pix Dinâmico
+    const endpoint = "https://api.woovi.com/v1/charge";
     
     console.log(`[pixup-payment] Chamando Pix Up: ${endpoint}`);
 
@@ -43,36 +43,47 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        amount: valueInCents, // Pix Up usa 'amount' em vez de 'value'
+        value: valueInCents, // Na rota /charge usa-se 'value'
         correlationID,
         type: 'DYNAMIC',
+        comment: `Recarga Vivo - ${cleanPhone}`,
         additionalInfo: [
-          { name: 'Serviço', value: 'Recarga Vivo' },
           { name: 'Telefone', value: cleanPhone }
         ]
       }),
     });
 
-    const responseData = await response.json();
+    // Lendo como texto primeiro para evitar erro de parse se vier HTML
+    const responseText = await response.text();
     console.log(`[pixup-payment] Status: ${response.status}`);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("[pixup-payment] Resposta não-JSON recebida:", responseText.substring(0, 200));
+      return new Response(JSON.stringify({ 
+        error: "Erro de Comunicação", 
+        details: `A API retornou um formato inesperado (HTML). Status: ${response.status}` 
+      }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     if (!response.ok) {
       console.error("[pixup-payment] Erro Pix Up:", responseData);
       return new Response(JSON.stringify({ 
         error: "Erro na Plataforma Pix Up", 
-        details: responseData.error || responseData.message || "Falha na autenticação"
+        details: responseData.error || responseData.message || responseData.errors?.[0]?.message || "Falha na requisição"
       }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Mapeamento da resposta da Pix Up (Woovi)
-    // A resposta vem dentro do objeto 'pix'
-    const pix = responseData.pix;
+    // Na rota /charge, os dados vêm dentro do objeto 'charge'
+    const charge = responseData.charge;
     return new Response(JSON.stringify({
-      transactionId: pix.correlationID,
-      copyPasteCode: pix.brCode,
-      qrCodeImageUrl: pix.qrCodeImage,
-      amount: pix.value / 100,
-      expiresAt: pix.expiresDate,
+      transactionId: charge.correlationID,
+      copyPasteCode: charge.brCode,
+      qrCodeImageUrl: charge.qrCodeImage,
+      amount: charge.value / 100,
+      expiresAt: charge.expiresDate,
       status: 'PENDING'
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
