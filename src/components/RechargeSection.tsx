@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import RechargeCard from './RechargeCard';
+import React, { useRef, useState } from 'react';
 
 const RechargeSection = () => {
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -68,12 +67,30 @@ const RechargeSection = () => {
             key={index} 
             className="min-w-[85%] sm:min-w-0 snap-center"
           >
-            <RechargeCard 
-              value={offer.value} 
-              bonus={offer.bonus} 
-              appsText={offer.apps}
-              isHighlight={offer.highlight}
-            />
+            <div className={`bg-white border ${offer.highlight ? 'border-[#660099] ring-2 ring-[#660099]/10' : 'border-gray-100'} rounded-2xl p-8 flex flex-col items-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.05)] h-full relative`}>
+              {offer.highlight && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#660099] text-white text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-widest">
+                  Melhor Custo-Benefício
+                </div>
+              )}
+              <div className="mb-2">
+                <h3 className="text-[42px] font-bold text-gray-900 tracking-tight">R$ {offer.value}</h3>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Oferta Vivo Pré*</p>
+              </div>
+              <div className="mt-6 mb-8 space-y-2 flex-1 flex flex-col justify-center">
+                <p className="text-2xl font-bold text-gray-900">
+                  <span className="text-[#660099]">{offer.bonus}</span> de bônus
+                </p>
+                {offer.apps && (
+                  <p className="text-sm font-medium text-gray-500 leading-tight">
+                    {offer.apps}
+                  </p>
+                )}
+              </div>
+              <button className="bg-[#660099] hover:bg-[#550080] text-white font-bold py-4 px-10 rounded-xl w-full text-lg transition-all active:scale-95">
+                Recarregue
+              </button>
+            </div>
           </div>
         ))}
       </div>
