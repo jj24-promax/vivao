@@ -11,7 +11,6 @@ import AppControleSection from '@/components/AppControleSection';
 import BalanceCheck from '@/components/BalanceCheck';
 import FooterLinks from '@/components/FooterLinks';
 import Footer from '@/components/Footer';
-import FloatingWhatsApp from '@/components/FloatingWhatsApp';
 import StickyMobileCTA from '@/components/StickyMobileCTA';
 
 const Index = () => {
@@ -31,7 +30,6 @@ const Index = () => {
       <Footer />
       
       {/* Componentes de utilidade fixa */}
-      <FloatingWhatsApp />
       <StickyMobileCTA />
     </div>
   );
