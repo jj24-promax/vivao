@@ -21,7 +21,7 @@ const ScheduledRecharge = () => {
               Recarga Programada com <br />
               <span className="font-normal">10GB de bônus todo mês</span> é só na Vivo!
             </h2>
-            <p className="text-[#660099] font-bold text-lg">+ WhatsApp Ilimitado</p>
+            <p className="text-[#660099] font-bold text-lg">+ Whatsapp e Instagram Grátis</p>
           </div>
           
           <p className="text-gray-600 text-lg leading-relaxed max-w-xl">

@@ -11,7 +11,7 @@ const RechargeSection = () => {
     { value: '20,00', bonus: '2GB' },
     { value: '25,00', bonus: '3GB' },
     { value: '30,00', bonus: '5GB' },
-    { value: '17,00', bonus: '500MB' },
+    { value: '50,00', bonus: '10GB' },
   ];
 
   const scrollToOffers = (e: React.MouseEvent) => {

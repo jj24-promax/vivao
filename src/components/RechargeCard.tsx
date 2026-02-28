@@ -25,7 +25,7 @@ const RechargeCard = ({ value, bonus }: RechargeCardProps) => {
             <span className="text-[#660099]">{bonus}</span> de bônus
           </p>
           <p className="text-sm font-medium text-gray-500">
-            Whatsapp Ilimitado
+            Whatsapp e Instagram Grátis
           </p>
         </div>
         
