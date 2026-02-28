@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Interface de resposta padronizada
 interface PaymentResponse {
   transactionId: string;
   copyPasteCode: string;
@@ -16,7 +15,6 @@ interface PaymentResponse {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -26,18 +24,20 @@ serve(async (req) => {
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
 
     if (!API_KEY) {
-      console.error("[pixup-payment] Erro: PIXUP_API_KEY não encontrada nos segredos.");
+      console.error("[pixup-payment] Erro: PIXUP_API_KEY não configurada.");
       throw new Error("Configuração de API ausente.");
     }
 
-    console.log(`[pixup-payment] Iniciando geração de Pix para ${phone} no valor de ${amount}`);
+    // Limpa o telefone para o correlationID
+    const cleanPhone = phone.replace(/\D/g, '');
+    const correlationID = `vivo_${Date.now()}_${cleanPhone}`;
+    
+    // Converte "25,00" -> 2500 (centavos)
+    const valueInCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
 
-    // Lógica do Service integrada para evitar erros de importação externa
-    const baseUrl = "https://api.woovi.com/v1";
-    const correlationID = `vivo_${Date.now()}_${phone.replace(/\D/g, '')}`;
-    const amountInCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
+    console.log(`[pixup-payment] Gerando Pix: R$ ${amount} (${valueInCents} cents) para ${phone}`);
 
-    const response = await fetch(`${baseUrl}/pix`, {
+    const response = await fetch("https://api.woovi.com/v1/pix", {
       method: 'POST',
       headers: {
         'Authorization': API_KEY,
@@ -45,8 +45,8 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        amount: amountInCents,
-        correlationID,
+        value: valueInCents, // O campo correto na Woovi é 'value'
+        correlationID: correlationID,
         type: 'DYNAMIC',
         additionalInfo: [
           { name: 'Serviço', value: 'Recarga Vivo' },
@@ -55,24 +55,21 @@ serve(async (req) => {
       }),
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("[pixup-payment] Erro na API PixUp:", errorData);
-      throw new Error(errorData.error || "Erro ao gerar cobrança no gateway.");
+      console.error("[pixup-payment] Erro API Woovi:", responseData);
+      throw new Error(responseData.error || "Erro no gateway de pagamento.");
     }
 
-    const data = await response.json();
-    
     const payment: PaymentResponse = {
-      transactionId: data.pix.correlationID,
-      copyPasteCode: data.pix.brCode,
-      qrCodeImageUrl: data.pix.qrCodeImage,
-      amount: data.pix.value / 100,
-      expiresAt: data.pix.expiresDate,
+      transactionId: responseData.pix.correlationID,
+      copyPasteCode: responseData.pix.brCode,
+      qrCodeImageUrl: responseData.pix.qrCodeImage,
+      amount: responseData.pix.value / 100,
+      expiresAt: responseData.pix.expiresDate,
       status: 'PENDING'
     };
-
-    console.log("[pixup-payment] Pix gerado com sucesso:", payment.transactionId);
 
     return new Response(JSON.stringify(payment), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
