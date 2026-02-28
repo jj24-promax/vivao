@@ -5,7 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Interface de resposta padronizada
 interface PaymentResponse {
   transactionId: string;
   copyPasteCode: string;
@@ -16,7 +15,6 @@ interface PaymentResponse {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -26,32 +24,33 @@ serve(async (req) => {
     const { amount, phone } = body;
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
 
+    // Log de depuração (mascarado por segurança)
+    console.log("[pixup-payment] Verificando API Key...");
     if (!API_KEY) {
-      console.error("[pixup-payment] Erro: PIXUP_API_KEY não encontrada nos segredos.");
-      return new Response(JSON.stringify({ error: "Configuração de API ausente no servidor." }), {
+      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada no Supabase Secrets.");
+      return new Response(JSON.stringify({ error: "Configuração de API (PIXUP_API_KEY) ausente no servidor." }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       });
+    } else {
+      console.log(`[pixup-payment] API Key detectada: ${API_KEY.substring(0, 6)}...`);
     }
 
-    // Limpeza e validação do valor (ex: "100,00" -> 10000)
     const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
     const amountInCents = Math.round(parseFloat(cleanAmount) * 100);
 
     if (isNaN(amountInCents) || amountInCents <= 0) {
-      console.error("[pixup-payment] Valor inválido recebido:", amount);
       return new Response(JSON.stringify({ error: "Valor de recarga inválido." }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
     }
 
-    // Gerando um correlationID único e curto
     const randomSuffix = Math.random().toString(36).substring(2, 8);
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `v_${Date.now()}_${randomSuffix}`;
 
-    console.log(`[pixup-payment] Criando cobrança: ${correlationID} | Valor: ${amountInCents} cents | Fone: ${cleanPhone}`);
+    console.log(`[pixup-payment] Solicitando Pix: ${correlationID} | Valor: ${amountInCents} cents`);
 
     const baseUrl = "https://api.woovi.com/v1";
     
@@ -76,9 +75,9 @@ serve(async (req) => {
     const responseData = await response.json();
 
     if (!response.ok) {
-      console.error("[pixup-payment] Erro API Woovi:", responseData);
+      console.error("[pixup-payment] Erro retornado pela Woovi:", responseData);
       return new Response(JSON.stringify({ 
-        error: responseData.error || "Erro na comunicação com o gateway de pagamento." 
+        error: responseData.error || "O gateway de pagamento recusou a requisição." 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: response.status,
@@ -100,8 +99,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("[pixup-payment] Erro inesperado:", error);
-    return new Response(JSON.stringify({ error: "Ocorreu um erro interno ao processar o Pix." }), {
+    console.error("[pixup-payment] Erro crítico:", error);
+    return new Response(JSON.stringify({ error: "Erro interno ao processar o pagamento." }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

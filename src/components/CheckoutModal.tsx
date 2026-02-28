@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Smartphone, Copy } from "lucide-react";
+import { Loader2, Smartphone, Copy, ShieldCheck, AlertTriangle } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentResponse } from "@/services/PixUpService";
@@ -23,7 +23,8 @@ interface CheckoutModalProps {
 
 const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [status, setStatus] = useState<'idle' | 'loading' | 'pix_ready' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'pix_ready' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState("");
   const [paymentData, setPaymentData] = useState<PaymentResponse | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
         setPhoneNumber("");
         setStatus('idle');
         setPaymentData(null);
+        setErrorMessage("");
       }, 300);
     }
   }, [isOpen]);
@@ -53,30 +55,25 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
     if (!isPhoneValid) return;
     
     setStatus('loading');
+    setErrorMessage("");
     
     try {
       const { data, error } = await supabase.functions.invoke('pixup-payment', {
         body: { amount: planValue, phone: phoneNumber }
       });
 
-      // Se houver erro na chamada da função
-      if (error) {
-        const errorMsg = error.message || "Erro de conexão com o servidor";
-        throw new Error(errorMsg);
-      }
-
-      // Se a função retornou um erro no corpo do JSON
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw new Error(error.message || "Erro na Edge Function");
+      if (data?.error) throw new Error(data.error);
 
       setPaymentData(data);
       setStatus('pix_ready');
       showSuccess("Pix gerado com sucesso!");
     } catch (err: any) {
       console.error("[CheckoutModal] Erro:", err);
-      showError(err.message || "Erro ao gerar Pix. Tente novamente.");
-      setStatus('idle');
+      const msg = err.message || "Erro ao conectar com o gateway.";
+      setErrorMessage(msg);
+      showError(msg);
+      setStatus('error');
     }
   };
 
@@ -91,46 +88,59 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
         <div className="bg-[#660099] p-8 text-white relative">
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">
+            <ShieldCheck size={12} /> Conexão Segura
+          </div>
           <DialogHeader>
             <DialogTitle className="text-2xl font-light text-white">
               Recarga de <span className="font-bold">R$ {planValue}</span>
             </DialogTitle>
             <DialogDescription className="text-purple-100 opacity-90">
-              {status === 'pix_ready' ? 'Escaneie o QR Code ou copie o código' : 'Informe o número para recarregar'}
+              {status === 'pix_ready' ? 'Pagamento via Pix' : 'Finalize sua recarga'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
         <div className="p-8">
-          {status === 'idle' && (
+          {(status === 'idle' || status === 'error') && (
             <div className="space-y-6">
+              {status === 'error' && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 text-sm animate-in fade-in slide-in-from-top-2">
+                  <AlertTriangle className="shrink-0 mt-0.5" size={16} />
+                  <p><strong>Erro:</strong> {errorMessage}</p>
+                </div>
+              )}
+              
               <div className="space-y-3">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                   <Smartphone size={14} className="text-[#660099]" />
-                  Número Vivo
+                  Número Vivo para Recarga
                 </label>
                 <Input
                   type="tel"
                   value={phoneNumber}
                   onChange={handlePhoneChange}
                   placeholder="(00) 90000-0000"
-                  className="h-16 text-xl border-gray-200 rounded-2xl bg-gray-50"
+                  className="h-16 text-xl border-gray-200 rounded-2xl bg-gray-50 focus:ring-[#660099]"
                 />
               </div>
               <Button
                 onClick={handleGeneratePix}
                 disabled={!isPhoneValid}
-                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl shadow-lg"
+                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl shadow-lg transition-all active:scale-95"
               >
-                Gerar Pix
+                {status === 'error' ? 'Tentar Novamente' : 'Gerar Pix'}
               </Button>
             </div>
           )}
 
           {status === 'loading' && (
-            <div className="py-12 flex flex-col items-center gap-4">
+            <div className="py-12 flex flex-col items-center gap-4 animate-in fade-in">
               <Loader2 className="h-12 w-12 text-[#660099] animate-spin" />
-              <p className="text-gray-500 font-medium">Gerando sua cobrança...</p>
+              <div className="text-center">
+                <p className="text-gray-900 font-bold">Validando conexão...</p>
+                <p className="text-gray-400 text-sm">Aguardando resposta da PixUp</p>
+              </div>
             </div>
           )}
 
@@ -144,12 +154,12 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
                 <Button 
                   onClick={copyToClipboard}
                   variant="outline"
-                  className="w-full h-14 border-2 border-[#660099] text-[#660099] font-bold rounded-xl flex items-center justify-center gap-2"
+                  className="w-full h-14 border-2 border-[#660099] text-[#660099] font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-purple-50"
                 >
                   <Copy size={18} /> Copiar Código Pix
                 </Button>
                 <p className="text-[11px] text-gray-400 uppercase font-bold tracking-tighter">
-                  O bônus será liberado após o pagamento
+                  O bônus será liberado automaticamente após o pagamento
                 </p>
               </div>
             </div>
