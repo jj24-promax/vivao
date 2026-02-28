@@ -24,7 +24,7 @@ const FooterLinks = () => {
       title: "REGULAMENTOS",
       desc: "Acesse todos os itens referentes à recarga Vivo.",
       action: "Confira",
-      href: "#"
+      href: "https://recarga.vivo.com.br/recarga/duvidas#regulamentos"
     }
   ];
 
