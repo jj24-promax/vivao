@@ -18,24 +18,22 @@ serve(async (req) => {
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
     
     if (!API_KEY) {
-      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada.");
-      return new Response(JSON.stringify({ error: "Configuração PIXUP_API_KEY ausente." }), { 
+      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada nas variáveis de ambiente.");
+      return new Response(JSON.stringify({ error: "Configuração PIXUP_API_KEY ausente no Supabase." }), { 
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    // Limpeza e conversão de valores
+    // Log de segurança: mostra apenas o início da chave para conferência
+    console.log(`[pixup-payment] Usando API Key iniciada em: ${API_KEY.substring(0, 8)}...`);
+
     const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
     const valueInCents = Math.round(parseFloat(cleanAmount) * 100);
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `vivo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // URL CORRETA: Adicionado o prefixo /api/ antes do /v1/
-    const baseUrl = "https://api.openpix.com.br";
-    const endpoint = `${baseUrl}/api/v1/charge`;
+    const endpoint = "https://api.openpix.com.br/api/v1/charge";
     
-    console.log(`[pixup-payment] Chamando endpoint: ${endpoint}`);
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -54,40 +52,30 @@ serve(async (req) => {
       }),
     });
 
-    const contentType = response.headers.get("content-type");
+    const responseData = await response.json();
     console.log(`[pixup-payment] Status da resposta: ${response.status}`);
 
-    if (contentType && contentType.includes("application/json")) {
-      const responseData = await response.json();
+    if (!response.ok) {
+      console.error("[pixup-payment] Erro retornado pela API:", JSON.stringify(responseData));
       
-      if (!response.ok) {
-        console.error("[pixup-payment] Erro retornado pela API:", responseData);
-        return new Response(JSON.stringify({ 
-          error: "Erro na API de Pagamento", 
-          details: responseData.error || responseData.message || "Erro de validação"
-        }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-
-      const charge = responseData.charge;
-      return new Response(JSON.stringify({
-        transactionId: charge.correlationID,
-        copyPasteCode: charge.brCode,
-        qrCodeImageUrl: charge.qrCodeImage,
-        amount: charge.value / 100,
-        expiresAt: charge.expiresDate,
-        status: 'PENDING'
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    } else {
-      const errorText = await response.text();
-      console.error("[pixup-payment] Resposta não-JSON. Status:", response.status);
-      console.error("[pixup-payment] Início do conteúdo:", errorText.substring(0, 200));
+      // A OpenPix retorna erros no formato { errors: [{ message: "..." }] }
+      const apiErrorMessage = responseData.errors?.[0]?.message || responseData.message || "Erro na API";
       
       return new Response(JSON.stringify({ 
-        error: `Erro ${response.status}: O servidor de pagamento não reconheceu o caminho.`,
-        debug: "Verifique se a URL /api/v1/charge está correta para sua conta."
-      }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        error: "Erro de Autenticação/Validação", 
+        details: apiErrorMessage 
+      }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    const charge = responseData.charge;
+    return new Response(JSON.stringify({
+      transactionId: charge.correlationID,
+      copyPasteCode: charge.brCode,
+      qrCodeImageUrl: charge.qrCodeImage,
+      amount: charge.value / 100,
+      expiresAt: charge.expiresDate,
+      status: 'PENDING'
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error("[pixup-payment] Erro excepcional:", error);
