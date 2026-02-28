@@ -4,7 +4,6 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import RechargeSection from '@/components/RechargeSection';
-import PaymentMethods from '@/components/PaymentMethods';
 import ScheduledRecharge from '@/components/ScheduledRecharge';
 import WhatsAppSection from '@/components/WhatsAppSection';
 import AppControleSection from '@/components/AppControleSection';
@@ -20,7 +19,6 @@ const Index = () => {
       <main>
         <Hero />
         <RechargeSection />
-        <PaymentMethods />
         <BalanceCheck />
         <ScheduledRecharge />
         <WhatsAppSection />
