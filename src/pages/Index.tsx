@@ -11,7 +11,6 @@ import BalanceCheck from '@/components/BalanceCheck';
 import FooterLinks from '@/components/FooterLinks';
 import Footer from '@/components/Footer';
 import StickyMobileCTA from '@/components/StickyMobileCTA';
-import ApiTest from '@/components/ApiTest';
 
 const Index = () => {
   return (
@@ -25,9 +24,6 @@ const Index = () => {
         <WhatsAppSection />
         <AppControleSection />
         <FooterLinks />
-        
-        {/* Painel de Teste da API (Remover em produção) */}
-        <ApiTest />
       </main>
       <Footer />
       
