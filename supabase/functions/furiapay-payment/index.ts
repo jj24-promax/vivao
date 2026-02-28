@@ -13,9 +13,9 @@ serve(async (req) => {
   try {
     const { action, amount, phone, external_id } = await req.json();
     
-    // Obtendo o token das Secrets do Supabase
     const FURIA_API_TOKEN = Deno.env.get('FURIA_PAY_TOKEN');
-    const BASE_URL = "https://api.furiapay.com.br/api/v1";
+    // Corrigido: O domínio correto da API costuma ser .com
+    const BASE_URL = "https://api.furiapay.com/api/v1";
 
     if (!FURIA_API_TOKEN) {
       console.error("[furiapay-payment] Erro: FURIA_PAY_TOKEN não configurado.");
@@ -25,15 +25,15 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[furiapay-payment] Processando ${action} para ${phone} no valor de ${amount}`);
+    console.log(`[furiapay-payment] Tentando conexão com: ${BASE_URL}/pix`);
 
     if (action === 'create_pix') {
-      // Chamada real para o Gateway
       const response = await fetch(`${BASE_URL}/pix`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${FURIA_API_TOKEN}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ 
           amount, 
@@ -43,6 +43,7 @@ serve(async (req) => {
       });
 
       const data = await response.json();
+      console.log("[furiapay-payment] Resposta do gateway:", data);
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -57,7 +58,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[furiapay-payment] Erro crítico:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: `Erro de conexão: ${error.message}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
