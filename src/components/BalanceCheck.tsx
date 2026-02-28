@@ -90,15 +90,17 @@ const BalanceCheck = () => {
             <p className="text-4xl font-light text-gray-900">{balance}</p>
             
             {balance === "R$ 0,00" && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-red-800 text-sm font-medium bg-red-50/50 p-3 rounded-lg border border-red-100">
-                <AlertCircle size={18} className="shrink-0 text-red-600" />
-                <span>Recarregue antes que a linha seja cancelada</span>
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-red-50 rounded-2xl border border-red-100">
+                <div className="flex items-center gap-3 text-red-800 font-medium">
+                  <AlertCircle size={24} className="shrink-0 text-red-600" />
+                  <span className="text-base">Sua linha corre risco de cancelamento.</span>
+                </div>
                 <button 
                   onClick={scrollToRecharge}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-900 rounded-full border border-red-300 font-bold hover:bg-red-200 hover:shadow-sm transition-all active:scale-95 group"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-[#FF8C00] text-black rounded-xl font-black uppercase tracking-tight border-b-4 border-[#CC7000] hover:bg-[#FFA500] active:border-b-0 active:translate-y-1 transition-all shadow-xl group w-full sm:w-auto"
                 >
                   clique aqui
-                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             )}
