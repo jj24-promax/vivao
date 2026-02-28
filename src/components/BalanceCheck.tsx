@@ -86,14 +86,14 @@ const BalanceCheck = () => {
             <p className="text-sm text-[#660099] font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
             <p className="text-4xl font-light text-gray-900">{balance}</p>
             
-            {/* Mensagem de Alerta Condicional Estilizada */}
+            {/* Mensagem de Alerta Condicional em Vermelho */}
             {balance === "R$ 0,00" && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-orange-800 text-sm font-medium bg-orange-50/50 p-3 rounded-lg border border-orange-100">
-                <AlertCircle size={18} className="shrink-0 text-orange-600" />
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-red-800 text-sm font-medium bg-red-50/50 p-3 rounded-lg border border-red-100">
+                <AlertCircle size={18} className="shrink-0 text-red-600" />
                 <span>Recarregue antes que a linha seja cancelada</span>
                 <button 
                   onClick={scrollToRecharge}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-900 rounded-full border border-orange-200 font-bold hover:bg-orange-200 hover:shadow-sm transition-all active:scale-95 group"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-900 rounded-full border border-red-200 font-bold hover:bg-red-200 hover:shadow-sm transition-all active:scale-95 group"
                 >
                   clique aqui
                   <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
