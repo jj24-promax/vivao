@@ -30,11 +30,14 @@ serve(async (req) => {
       throw new Error("Configuração de API ausente.");
     }
 
-    console.log(`[pixup-payment] Iniciando geração de Pix para ${phone} no valor de ${amount}`);
+    // Gerando um correlationID único com timestamp + string aleatória + telefone
+    const randomSuffix = Math.random().toString(36).substring(2, 7);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const correlationID = `vivo_${Date.now()}_${randomSuffix}_${cleanPhone}`;
 
-    // Lógica do Service integrada para evitar erros de importação externa
+    console.log(`[pixup-payment] Gerando Pix único: ${correlationID}`);
+
     const baseUrl = "https://api.woovi.com/v1";
-    const correlationID = `vivo_${Date.now()}_${phone.replace(/\D/g, '')}`;
     const amountInCents = Math.round(parseFloat(amount.replace(',', '.')) * 100);
 
     const response = await fetch(`${baseUrl}/pix`, {
@@ -71,8 +74,6 @@ serve(async (req) => {
       expiresAt: data.pix.expiresDate,
       status: 'PENDING'
     };
-
-    console.log("[pixup-payment] Pix gerado com sucesso:", payment.transactionId);
 
     return new Response(JSON.stringify(payment), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
