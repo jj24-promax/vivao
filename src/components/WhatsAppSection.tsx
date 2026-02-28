@@ -4,6 +4,13 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 
 const WhatsAppSection = () => {
+  const handleRecarregue = () => {
+    const element = document.getElementById('recharge-offers');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <section className="container mx-auto px-4 py-20 border-t border-gray-100">
       <div className="flex flex-col md:flex-row items-center gap-16">
@@ -26,7 +33,10 @@ const WhatsAppSection = () => {
             Adicione e converse no número <span className="underline font-semibold">(11) 99915-1515</span> ou clique aqui:
           </p>
           
-          <Button className="bg-[#660099] hover:bg-[#550080] text-white font-bold px-10 py-7 rounded-md text-base">
+          <Button 
+            onClick={handleRecarregue}
+            className="bg-[#660099] hover:bg-[#550080] text-white font-bold px-10 py-7 rounded-md text-base"
+          >
             Recarregue
           </Button>
         </div>

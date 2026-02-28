@@ -33,7 +33,11 @@ const RechargeSection = () => {
       </div>
       
       {/* Grid que vira scroll lateral no mobile ou empilha melhor */}
-      <div ref={cardsRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 scroll-mt-20">
+      <div 
+        id="recharge-offers"
+        ref={cardsRef} 
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 scroll-mt-20"
+      >
         {offers.map((offer, index) => (
           <RechargeCard key={index} value={offer.value} bonus={offer.bonus} />
         ))}
