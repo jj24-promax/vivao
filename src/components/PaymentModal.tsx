@@ -52,10 +52,20 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
     setLoading(true);
     try {
       const numericAmount = parseFloat(amount.replace(',', '.'));
+      
+      // Configuração do Split (Ajuste os usernames conforme sua conta Pixup)
+      const splitConfig = [
+        {
+          username: "usertest", // Substitua pelo username real do destinatário do split
+          percentageSplit: "10"  // 10% de comissão/split
+        }
+      ];
+
       const data = await callPixupAPI('create_payment', {
         amount: numericAmount,
         payerQuestion: `Recarga Vivo - ${phoneNumber}`,
-        external_id: `vivo_${Date.now()}`
+        external_id: `vivo_${Date.now()}`,
+        split: splitConfig // Adicionando o objeto de split
       });
       
       if (data.qrcode) {
