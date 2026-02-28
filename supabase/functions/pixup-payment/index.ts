@@ -11,29 +11,30 @@ serve(async (req) => {
   }
 
   try {
-    console.log("[pixup-payment] Iniciando requisição de pagamento...");
+    console.log("[pixup-payment] Iniciando requisição Pix Up...");
     
     const body = await req.json();
     const { amount, phone } = body;
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
     
     if (!API_KEY) {
-      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada nas variáveis de ambiente.");
-      return new Response(JSON.stringify({ error: "Configuração PIXUP_API_KEY ausente no Supabase." }), { 
+      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não encontrada.");
+      return new Response(JSON.stringify({ error: "Configuração PIXUP_API_KEY ausente." }), { 
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    // Log de segurança: mostra apenas o início da chave para conferência
-    console.log(`[pixup-payment] Usando API Key iniciada em: ${API_KEY.substring(0, 8)}...`);
-
+    // Limpeza e conversão de valores
     const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
     const valueInCents = Math.round(parseFloat(cleanAmount) * 100);
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `vivo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    const endpoint = "https://api.openpix.com.br/api/v1/charge";
+    // Endpoint específico da Pix Up / Woovi
+    const endpoint = "https://api.woovi.com/v1/pix";
     
+    console.log(`[pixup-payment] Chamando Pix Up: ${endpoint}`);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -42,38 +43,36 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        value: valueInCents,
+        amount: valueInCents, // Pix Up usa 'amount' em vez de 'value'
         correlationID,
         type: 'DYNAMIC',
-        comment: `Recarga Vivo - ${cleanPhone}`,
         additionalInfo: [
+          { name: 'Serviço', value: 'Recarga Vivo' },
           { name: 'Telefone', value: cleanPhone }
         ]
       }),
     });
 
     const responseData = await response.json();
-    console.log(`[pixup-payment] Status da resposta: ${response.status}`);
+    console.log(`[pixup-payment] Status: ${response.status}`);
 
     if (!response.ok) {
-      console.error("[pixup-payment] Erro retornado pela API:", JSON.stringify(responseData));
-      
-      // A OpenPix retorna erros no formato { errors: [{ message: "..." }] }
-      const apiErrorMessage = responseData.errors?.[0]?.message || responseData.message || "Erro na API";
-      
+      console.error("[pixup-payment] Erro Pix Up:", responseData);
       return new Response(JSON.stringify({ 
-        error: "Erro de Autenticação/Validação", 
-        details: apiErrorMessage 
+        error: "Erro na Plataforma Pix Up", 
+        details: responseData.error || responseData.message || "Falha na autenticação"
       }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const charge = responseData.charge;
+    // Mapeamento da resposta da Pix Up (Woovi)
+    // A resposta vem dentro do objeto 'pix'
+    const pix = responseData.pix;
     return new Response(JSON.stringify({
-      transactionId: charge.correlationID,
-      copyPasteCode: charge.brCode,
-      qrCodeImageUrl: charge.qrCodeImage,
-      amount: charge.value / 100,
-      expiresAt: charge.expiresDate,
+      transactionId: pix.correlationID,
+      copyPasteCode: pix.brCode,
+      qrCodeImageUrl: pix.qrCodeImage,
+      amount: pix.value / 100,
+      expiresAt: pix.expiresDate,
       status: 'PENDING'
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
