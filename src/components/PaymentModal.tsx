@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight, FlaskConical } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Smartphone, AlertCircle, ArrowRight, Mail, User } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
-import { callPixupAPI } from '@/utils/payment';
-import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from "@/integrations/supabase/client";
+import { useTransactionStatus } from '@/hooks/useTransactionStatus';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -17,138 +17,56 @@ interface PaymentModalProps {
 }
 
 const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
-  const [step, setStep] = useState<'phone' | 'pix' | 'success'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<'FORM' | 'LOADING' | 'QR_CODE' | 'SUCCESS' | 'ERROR'>('FORM');
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [paymentData, setPaymentData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
+  
+  const transactionStatus = useTransactionStatus(paymentData?.transactionId);
+
+  useEffect(() => {
+    if (transactionStatus === 'PAID') setView('SUCCESS');
+  }, [transactionStatus]);
 
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
-        setStep('phone');
+        setView('FORM');
         setPaymentData(null);
-        setPhoneNumber("");
+        setFormData({ name: '', email: '', phone: '' });
       }, 300);
     }
   }, [isOpen]);
 
-  // Real-time listener para confirmação automática
-  useEffect(() => {
-    if (step === 'pix' && paymentData?.transactionId) {
-      const channel = supabase
-        .channel('payment_status')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'payments',
-            filter: `transaction_id=eq.${paymentData.transactionId}`,
-          },
-          (payload) => {
-            if (payload.new.status === 'PAID') {
-              setStep('success');
-              showSuccess("Pagamento confirmado!");
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [step, paymentData]);
-
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length === 0) return "";
-    if (numbers.length <= 2) return `(${numbers}`;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  const handlePhoneFormat = (v: string) => {
+    const n = v.replace(/\D/g, "");
+    if (n.length <= 2) return `(${n}`;
+    if (n.length <= 7) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+    return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7, 11)}`;
   };
 
-  const handlePhoneSubmit = async () => {
-    const digits = phoneNumber.replace(/\D/g, "");
-    if (digits.length !== 11) {
-      showError("Digite um número válido com DDD");
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.email || formData.phone.replace(/\D/g, "").length !== 11) {
+      showError("Preencha todos os campos corretamente.");
       return;
     }
 
-    setLoading(true);
+    setView('LOADING');
     try {
-      const numericAmount = parseFloat(amount.replace(',', '.'));
-      const externalId = `vivo_${Date.now()}`;
-      const postbackUrl = `https://rvjycrapllupubyieqae.supabase.co/functions/v1/pixup-webhook`;
-
-      const data = await callPixupAPI('create_payment', {
-        amount: numericAmount,
-        payerQuestion: `Recarga Vivo - ${phoneNumber}`,
-        external_id: externalId,
-        postbackUrl: postbackUrl
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { 
+          ...formData, 
+          amount: parseFloat(amount.replace(',', '.')) 
+        }
       });
-      
-      if (data.qrcode) {
-        await supabase.from('payments').insert({
-          transaction_id: data.transactionId,
-          external_id: externalId,
-          amount: numericAmount,
-          phone_number: phoneNumber,
-          status: 'PENDING'
-        });
 
-        setPaymentData(data);
-        setTimeLeft(data.calendar?.expiration || 3600);
-        setStep('pix');
-      } else {
-        showError(data.message || "Erro ao gerar PIX.");
-      }
-    } catch (error) {
-      showError("Erro de conexão.");
-    } finally {
-      setLoading(false);
+      if (error) throw error;
+      setPaymentData(data);
+      setView('QR_CODE');
+    } catch (err: any) {
+      showError(err.message || "Erro ao processar pagamento.");
+      setView('FORM');
     }
-  };
-
-  // Função apenas para teste manual do fluxo de sucesso
-  const simulateSuccess = async () => {
-    if (!paymentData?.transactionId) return;
-    
-    setLoading(true);
-    // Simula o que o webhook faria no banco de dados
-    const { error } = await supabase
-      .from('payments')
-      .update({ status: 'PAID' })
-      .eq('transaction_id', paymentData.transactionId);
-    
-    if (error) {
-      showError("Erro ao simular sucesso.");
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [timeLeft]);
-
-  const copyToClipboard = () => {
-    if (paymentData?.qrcode) {
-      navigator.clipboard.writeText(paymentData.qrcode);
-      setCopied(true);
-      showSuccess("Código PIX copiado!");
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -157,95 +75,96 @@ const PaymentModal = ({ isOpen, onClose, amount }: PaymentModalProps) => {
         <div className="bg-[#660099] p-6 text-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <Smartphone className="w-6 h-6" />
-              {step === 'phone' ? 'Informe seu número' : step === 'pix' ? 'Finalizar Recarga' : 'Sucesso!'}
+              {view === 'FORM' ? 'Dados da Recarga' : view === 'QR_CODE' ? 'Pague com PIX' : 'Status'}
             </DialogTitle>
             <DialogDescription className="text-purple-100 opacity-90">
-              {step === 'phone' 
-                ? 'Precisamos do seu número para creditar a recarga.' 
-                : step === 'pix' 
-                ? 'Escaneie o QR Code ou copie o código para pagar.'
-                : 'Seu pagamento foi confirmado com sucesso.'}
+              {view === 'FORM' ? 'Informe seus dados para continuar.' : 'Escaneie o código abaixo.'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="p-8 flex flex-col items-center">
-          {step === 'phone' && (
-            <div className="w-full space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Número Vivo com DDD</label>
-                <Input 
-                  placeholder="(00) 90000-0000"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(formatPhone(e.target.value))}
-                  className="h-14 text-lg border-gray-200 focus:ring-[#660099]"
-                />
+        <div className="p-8">
+          {view === 'FORM' && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">Nome Completo</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input 
+                    className="pl-10 h-12" 
+                    placeholder="Seu nome" 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
               </div>
-              <Button 
-                onClick={handlePhoneSubmit}
-                disabled={loading || phoneNumber.replace(/\D/g, "").length !== 11}
-                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl text-lg flex items-center justify-center gap-2"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : <>Continuar <ArrowRight size={20} /></>}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">E-mail</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input 
+                    className="pl-10 h-12" 
+                    placeholder="seu@email.com" 
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase">Número Vivo</label>
+                <div className="relative">
+                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Input 
+                    className="pl-10 h-12" 
+                    placeholder="(00) 90000-0000" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: handlePhoneFormat(e.target.value)})}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSubmit} className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl mt-4">
+                Gerar PIX de R$ {amount} <ArrowRight className="ml-2" size={18} />
               </Button>
             </div>
           )}
 
-          {step === 'pix' && (
-            <>
-              <div className="mb-6 text-center">
-                <p className="text-sm text-gray-500 uppercase font-bold tracking-wider mb-1">Valor da Recarga</p>
-                <p className="text-4xl font-bold text-gray-900">R$ {amount}</p>
-              </div>
-
-              <div className="bg-white p-4 rounded-2xl shadow-inner border border-gray-100 mb-6">
-                <QRCodeSVG value={paymentData?.qrcode || ""} size={200} level="H" />
-              </div>
-
-              <div className="w-full space-y-4">
-                <Button 
-                  onClick={copyToClipboard}
-                  className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl flex items-center justify-center gap-2"
-                >
-                  {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                  {copied ? "Copiado!" : "Copiar Código PIX"}
-                </Button>
-
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Expira em: <span className="font-bold text-red-500">{formatTime(timeLeft)}</span></span>
-                </div>
-
-                {/* Botão de Simulação (Apenas para Teste) */}
-                <Button 
-                  variant="ghost"
-                  onClick={simulateSuccess}
-                  className="w-full text-xs text-gray-400 hover:text-[#660099] flex items-center justify-center gap-1"
-                >
-                  <FlaskConical size={12} /> Simular Confirmação (Teste)
-                </Button>
-              </div>
-            </>
+          {view === 'LOADING' && (
+            <div className="py-12 flex flex-col items-center gap-4">
+              <Loader2 className="w-12 h-12 text-[#660099] animate-spin" />
+              <p className="text-gray-500 font-medium">Gerando seu QR Code...</p>
+            </div>
           )}
 
-          {step === 'success' && (
-            <div className="text-center space-y-6 py-4">
+          {view === 'QR_CODE' && (
+            <div className="flex flex-col items-center">
+              <div className="bg-white p-4 rounded-2xl shadow-inner border border-gray-100 mb-6">
+                <QRCodeSVG value={paymentData?.qrcode || ""} size={200} />
+              </div>
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(paymentData.qrcode);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="w-full h-14 bg-[#660099] text-white font-bold rounded-xl mb-4"
+              >
+                {copied ? <CheckCircle2 className="mr-2" /> : <Copy className="mr-2" />}
+                {copied ? "Copiado!" : "Copiar Código PIX"}
+              </Button>
+              <p className="text-sm text-gray-500 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Aguardando pagamento...
+              </p>
+            </div>
+          )}
+
+          {view === 'SUCCESS' && (
+            <div className="text-center py-6 space-y-4">
               <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle2 size={48} />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-gray-900">Pagamento Confirmado!</h3>
-                <p className="text-gray-500">
-                  Recebemos seu pagamento de <strong>R$ {amount}</strong> para o número <strong>{phoneNumber}</strong>.
-                </p>
-              </div>
-              <Button 
-                onClick={onClose}
-                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold rounded-xl"
-              >
-                Fechar
-              </Button>
+              <h3 className="text-2xl font-bold">Recarga Confirmada!</h3>
+              <p className="text-gray-500">Os créditos serão enviados para {formData.phone} em instantes.</p>
+              <Button onClick={onClose} className="w-full h-14 bg-[#660099] text-white font-bold rounded-xl">Fechar</Button>
             </div>
           )}
         </div>
