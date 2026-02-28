@@ -6,24 +6,28 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handler para CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Usando os nomes exatos das secrets configuradas no Supabase
     const clientId = Deno.env.get("CLIENT_ID");
     const clientSecret = Deno.env.get("CLIENT_SECRET");
 
+    // Log de depuração (não exibe o valor real por segurança)
+    console.log("[pixup-proxy] Verificando variáveis de ambiente...");
+    if (!clientId) console.error("[pixup-proxy] Erro: CLIENT_ID não encontrado.");
+    if (!clientSecret) console.error("[pixup-proxy] Erro: CLIENT_SECRET não encontrado.");
+
     if (!clientId || !clientSecret) {
-      console.error("[pixup-proxy] Erro: CLIENT_ID ou CLIENT_SECRET não encontrados nas variáveis de ambiente.");
-      throw new Error("Configuração de API incompleta.");
+      throw new Error("Credenciais da API Pixup não configuradas no Supabase.");
     }
 
     const { action, body } = await req.json();
-    console.log(`[pixup-proxy] Executando ação: ${action}`);
+    console.log(`[pixup-proxy] Ação solicitada: ${action}`);
 
-    // 1. Obter Token de Acesso (OAuth2)
+    // 1. Obter Token OAuth2
     const authHeader = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch("https://api.pixupbr.com/v2/oauth/token", {
       method: "POST",
@@ -36,7 +40,7 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
       console.error("[pixup-proxy] Erro ao obter token:", tokenData);
-      return new Response(JSON.stringify(tokenData), { 
+      return new Response(JSON.stringify({ error: "Falha na autenticação com Pixup", details: tokenData }), { 
         status: tokenResponse.status, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
@@ -44,20 +48,18 @@ serve(async (req) => {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Mapeamento de Endpoints
+    // 2. Definir Endpoint
     let targetUrl = "";
     if (action === 'create_payment') {
       targetUrl = "https://api.pixupbr.com/v2/pix/qrcode";
     } else if (action === 'make_payment') {
       targetUrl = "https://api.pixupbr.com/v2/pix/payment";
     } else {
-      return new Response(JSON.stringify({ error: "Ação inválida" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      throw new Error(`Ação inválida: ${action}`);
     }
 
-    // 3. Chamada para a API Pixup
+    // 3. Chamada Final
+    console.log(`[pixup-proxy] Chamando endpoint: ${targetUrl}`);
     const apiResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
