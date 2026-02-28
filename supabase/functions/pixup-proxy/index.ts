@@ -11,11 +11,12 @@ serve(async (req) => {
   }
 
   try {
-    const clientId = Deno.env.get("PAYMENT_CLIENT_ID");
-    const clientSecret = Deno.env.get("PAYMENT_CLIENT_SECRET");
+    // Usando os nomes exatos das secrets configuradas no Supabase
+    const clientId = Deno.env.get("CLIENT_ID");
+    const clientSecret = Deno.env.get("CLIENT_SECRET");
 
     if (!clientId || !clientSecret) {
-      console.error("[pixup-proxy] Erro: Credenciais não configuradas.");
+      console.error("[pixup-proxy] Erro: CLIENT_ID ou CLIENT_SECRET não encontrados nas variáveis de ambiente.");
       throw new Error("Configuração de API incompleta.");
     }
 
@@ -34,6 +35,7 @@ serve(async (req) => {
 
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
+      console.error("[pixup-proxy] Erro ao obter token:", tokenData);
       return new Response(JSON.stringify(tokenData), { 
         status: tokenResponse.status, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -42,12 +44,12 @@ serve(async (req) => {
 
     const accessToken = tokenData.access_token;
 
-    // 2. Mapeamento de Endpoints conforme solicitado
+    // 2. Mapeamento de Endpoints
     let targetUrl = "";
     if (action === 'create_payment') {
-      targetUrl = "https://api.pixupbr.com/v2/pix/qrcode"; // Endpoint de QR Code
+      targetUrl = "https://api.pixupbr.com/v2/pix/qrcode";
     } else if (action === 'make_payment') {
-      targetUrl = "https://api.pixupbr.com/v2/pix/payment"; // Endpoint de Pagamento
+      targetUrl = "https://api.pixupbr.com/v2/pix/payment";
     } else {
       return new Response(JSON.stringify({ error: "Ação inválida" }), {
         status: 400,
