@@ -8,10 +8,10 @@ const RechargeSection = () => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const offers = [
-    { value: '20,00', bonus: '2GB' },
-    { value: '25,00', bonus: '3GB' },
-    { value: '30,00', bonus: '5GB' },
-    { value: '17,00', bonus: '500MB' },
+    { value: '20,00', bonus: '3GB' },
+    { value: '25,00', bonus: '4GB' },
+    { value: '30,00', bonus: '6GB' },
+    { value: '17,00', bonus: '1.5GB' },
   ];
 
   const scrollToOffers = (e: React.MouseEvent) => {
