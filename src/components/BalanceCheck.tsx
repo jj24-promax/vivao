@@ -35,11 +35,14 @@ const BalanceCheck = () => {
   };
 
   const scrollToRecharge = () => {
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    const element = document.getElementById('recharge-offers');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   return (
-    <section className="container mx-auto px-4 py-16 border-t border-gray-100">
+    <section id="balance-check" className="container mx-auto px-4 py-16 border-t border-gray-100 scroll-mt-24">
       <div className="max-w-2xl">
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
@@ -86,7 +89,6 @@ const BalanceCheck = () => {
             <p className="text-sm text-[#660099] font-bold uppercase tracking-wider mb-1">Saldo Disponível</p>
             <p className="text-4xl font-light text-gray-900">{balance}</p>
             
-            {/* Mensagem de Alerta Condicional em Vermelho */}
             {balance === "R$ 0,00" && (
               <div className="mt-4 flex flex-wrap items-center gap-2 text-red-800 text-sm font-medium bg-red-50/50 p-3 rounded-lg border border-red-100">
                 <AlertCircle size={18} className="shrink-0 text-red-600" />

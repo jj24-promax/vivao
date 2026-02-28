@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Smartphone } from "lucide-react";
+import { Loader2, CheckCircle2, Smartphone, Copy, QrCode } from "lucide-react";
 import InputMask from 'react-input-mask';
+import { showSuccess } from "@/utils/toast";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -22,8 +23,8 @@ interface CheckoutModalProps {
 const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [pixCode] = useState("00020101021226850014br.gov.bcb.pix0123vivotestepix20250513qrcodepix520400005303986540520.005802BR5925TELEFONICA BRASIL S.A.6009SAO PAULO62070503***6304E1A2");
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
@@ -37,37 +38,40 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
 
   const handlePixGeneration = async () => {
     if (!isPhoneValid) return;
-
     setStatus('loading');
-    console.log(`Gerando Pix para o plano R$ ${planValue} e número ${phoneNumber}`);
-
-    // Simulação de 2 segundos
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
     setStatus('success');
+  };
+
+  const copyPixCode = () => {
+    navigator.clipboard.writeText(pixCode);
+    showSuccess("Código Pix copiado com sucesso!");
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] rounded-2xl p-0 overflow-hidden border-none">
-        <div className="bg-[#660099] p-6 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-light text-white">
-              Você escolheu a recarga de <span className="font-bold">R$ {planValue}</span>
+      <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+        <div className="bg-[#660099] p-8 text-white relative overflow-hidden">
+          {/* Decorative circle */}
+          <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          
+          <DialogHeader className="relative z-10">
+            <DialogTitle className="text-2xl font-light text-white">
+              Recarga de <span className="font-bold">R$ {planValue}</span>
             </DialogTitle>
-            <DialogDescription className="text-purple-100 opacity-90">
-              Informe o número Vivo que receberá os créditos.
+            <DialogDescription className="text-purple-100 opacity-90 text-base">
+              {status === 'success' ? 'Pagamento via Pix' : 'Informe o número para receber os créditos'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-8">
           {status === 'idle' && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
                   <Smartphone size={16} className="text-[#660099]" />
-                  Número do Celular
+                  Número Vivo com DDD
                 </label>
                 <InputMask
                   mask="(99) 99999-9999"
@@ -79,52 +83,84 @@ const CheckoutModal = ({ isOpen, onClose, planValue }: CheckoutModalProps) => {
                       {...inputProps}
                       type="tel"
                       placeholder="(00) 00000-0000"
-                      className="h-14 text-lg border-gray-200 focus:ring-[#660099] focus:border-[#660099] rounded-xl"
+                      className="h-16 text-xl border-gray-200 focus:ring-[#660099] focus:border-[#660099] rounded-2xl bg-gray-50/50"
                       autoFocus
                     />
                   )}
                 </InputMask>
               </div>
 
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
+                <div className="bg-blue-500 p-1 rounded-full text-white mt-0.5">
+                  <CheckCircle2 size={14} />
+                </div>
+                <p className="text-sm text-blue-800 leading-tight">
+                  Você receberá <span className="font-bold">Bônus de Internet</span> imediatamente após a confirmação do pagamento.
+                </p>
+              </div>
+
               <Button
                 onClick={handlePixGeneration}
                 disabled={!isPhoneValid}
-                className="w-full h-14 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-xl transition-all active:scale-[0.98]"
+                className="w-full h-16 bg-[#660099] hover:bg-[#550080] text-white font-bold text-lg rounded-2xl transition-all shadow-lg shadow-purple-100 active:scale-[0.98]"
               >
-                Continuar para o Pagamento
+                Gerar Código Pix
               </Button>
-            </>
+            </div>
           )}
 
           {status === 'loading' && (
-            <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
-              <Loader2 className="h-12 w-12 text-[#660099] animate-spin" />
-              <div className="space-y-1">
-                <p className="text-xl font-bold text-gray-800">Gerando Pix...</p>
-                <p className="text-gray-500">Aguarde um instante enquanto preparamos seu código.</p>
+            <div className="py-16 flex flex-col items-center justify-center space-y-6 text-center">
+              <div className="relative">
+                <Loader2 className="h-16 w-16 text-[#660099] animate-spin" />
+                <QrCode className="h-6 w-6 text-[#660099] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-50" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-gray-800">Gerando seu Pix...</p>
+                <p className="text-gray-500 max-w-[250px] mx-auto">Estamos preparando seu código de pagamento seguro.</p>
               </div>
             </div>
           )}
 
           {status === 'success' && (
-            <div className="py-8 flex flex-col items-center justify-center space-y-6 text-center animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="h-12 w-12 text-green-600" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-gray-800">Pix Gerado!</p>
-                <p className="text-gray-600">
-                  O código de pagamento foi enviado para o número <br />
-                  <span className="font-bold text-gray-900">{phoneNumber}</span>
+            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
+                  {/* Simulated QR Code */}
+                  <div className="w-48 h-48 bg-gray-50 flex items-center justify-center relative overflow-hidden rounded-lg">
+                    <QrCode size={160} className="text-gray-800" strokeWidth={1.5} />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-pulse" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 text-center">
+                  Escaneie o QR Code acima com o app do seu banco ou use o código abaixo.
                 </p>
               </div>
-              <Button 
-                onClick={onClose}
-                variant="outline"
-                className="w-full h-12 border-gray-200 text-gray-600 font-bold rounded-xl"
-              >
-                Fechar
-              </Button>
+
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Pix Copia e Cola</p>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 truncate text-sm text-gray-600 font-mono">
+                    {pixCode}
+                  </div>
+                  <Button 
+                    onClick={copyPixCode}
+                    className="bg-[#660099] hover:bg-[#550080] text-white p-3 h-auto rounded-xl"
+                  >
+                    <Copy size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <Button 
+                  onClick={onClose}
+                  variant="ghost"
+                  className="w-full h-12 text-gray-400 hover:text-gray-600 font-medium"
+                >
+                  Cancelar e voltar
+                </Button>
+              </div>
             </div>
           )}
         </div>

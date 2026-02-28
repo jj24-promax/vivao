@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const ScheduledRecharge = () => {
   return (
-    <section className="container mx-auto px-4 py-20">
+    <section id="scheduled-recharge" className="container mx-auto px-4 py-20 scroll-mt-24">
       <div className="flex flex-col md:flex-row items-center gap-16">
         {/* Text Content */}
         <div className="flex-1 space-y-8">

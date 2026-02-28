@@ -12,7 +12,7 @@ const WhatsAppSection = () => {
   };
 
   return (
-    <section className="container mx-auto px-4 py-20 border-t border-gray-100">
+    <section id="whatsapp-section" className="container mx-auto px-4 py-20 border-t border-gray-100 scroll-mt-24">
       <div className="flex flex-col md:flex-row items-center gap-16">
         <div className="flex-1 space-y-8">
           <p className="text-[#660099] font-bold text-sm tracking-widest uppercase">RECARGA RÁPIDA EM 3 PASSOS</p>

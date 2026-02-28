@@ -26,7 +26,7 @@ const FooterLinks = () => {
   ];
 
   return (
-    <section className="container mx-auto px-4 py-16 border-t border-gray-100">
+    <section id="footer-links" className="container mx-auto px-4 py-16 border-t border-gray-100 scroll-mt-24">
       <h3 className="text-3xl font-light text-gray-800 mb-10">Veja também</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {links.map((link, index) => (
