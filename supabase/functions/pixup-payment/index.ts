@@ -11,29 +11,30 @@ serve(async (req) => {
   }
 
   try {
-    console.log("[pixup-payment] Processando nova requisição...");
+    console.log("[pixup-payment] Iniciando tentativa de criação de cobrança...");
     
     const body = await req.json();
     const { amount, phone } = body;
     const API_KEY = Deno.env.get('PIXUP_API_KEY');
     
     if (!API_KEY) {
-      console.error("[pixup-payment] ERRO: PIXUP_API_KEY não configurada.");
-      return new Response(JSON.stringify({ error: "API Key não configurada no Supabase." }), { 
+      return new Response(JSON.stringify({ error: "PIXUP_API_KEY não configurada no Supabase." }), { 
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
+    // Conversão do valor para centavos (Woovi usa 'value' em centavos)
     const cleanAmount = amount.toString().replace('R$', '').replace(/\s/g, '').replace('.', '').replace(',', '.');
-    const amountInCents = Math.round(parseFloat(cleanAmount) * 100);
+    const valueInCents = Math.round(parseFloat(cleanAmount) * 100);
     const cleanPhone = phone.replace(/\D/g, '');
     const correlationID = `v_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
+    // ENDPOINT CORRETO: /v1/charge (em vez de /v1/pix)
     const baseUrl = "https://api.woovi.com/v1";
     
-    console.log(`[pixup-payment] Chamando Woovi: ${baseUrl}/pix`);
+    console.log(`[pixup-payment] Chamando Woovi: ${baseUrl}/charge`);
 
-    const response = await fetch(`${baseUrl}/pix`, {
+    const response = await fetch(`${baseUrl}/charge`, {
       method: 'POST',
       headers: {
         'Authorization': API_KEY,
@@ -41,53 +42,48 @@ serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        amount: amountInCents,
+        value: valueInCents, // Campo correto é 'value'
         correlationID,
         type: 'DYNAMIC',
+        comment: `Recarga Vivo - ${cleanPhone}`,
         additionalInfo: [
-          { name: 'Serviço', value: 'Recarga Vivo' },
           { name: 'Telefone', value: cleanPhone }
         ]
       }),
     });
 
-    // VERIFICAÇÃO CRÍTICA: O que a API respondeu?
     const contentType = response.headers.get("content-type");
     
     if (contentType && contentType.includes("application/json")) {
       const responseData = await response.json();
       
       if (!response.ok) {
-        console.error("[pixup-payment] Erro JSON da Woovi:", responseData);
+        console.error("[pixup-payment] Erro da API:", responseData);
         return new Response(JSON.stringify({ 
           error: "Erro na API de Pagamento", 
           details: responseData.error || responseData.message 
         }), { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      // A resposta da Woovi para /charge vem dentro do objeto 'charge'
+      const charge = responseData.charge;
+
       return new Response(JSON.stringify({
-        transactionId: responseData.pix.correlationID,
-        copyPasteCode: responseData.pix.brCode,
-        qrCodeImageUrl: responseData.pix.qrCodeImage,
-        amount: responseData.pix.value / 100,
-        expiresAt: responseData.pix.expiresDate,
+        transactionId: charge.correlationID,
+        copyPasteCode: charge.brCode,
+        qrCodeImageUrl: charge.qrCodeImage,
+        amount: charge.value / 100,
+        expiresAt: charge.expiresDate,
         status: 'PENDING'
       }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } else {
-      // Se não for JSON, lemos como texto para debugar
       const errorText = await response.text();
-      console.error("[pixup-payment] A API retornou HTML/Texto em vez de JSON. Status:", response.status);
-      console.error("[pixup-payment] Conteúdo da resposta:", errorText.substring(0, 500)); // Loga os primeiros 500 caracteres
-
-      let userMessage = "O gateway de pagamento retornou um erro inesperado (HTML).";
-      if (response.status === 401) userMessage = "Chave de API (PIXUP_API_KEY) inválida ou não autorizada.";
-      if (response.status === 404) userMessage = "Endpoint da API não encontrado.";
-
+      console.error("[pixup-payment] Resposta não-JSON recebida. Status:", response.status);
       return new Response(JSON.stringify({ 
-        error: userMessage, 
+        error: "Resposta inesperada do gateway.", 
         status: response.status,
-        debug: "Verifique os logs do Supabase para ver o HTML retornado."
+        debug: errorText.substring(0, 200)
       }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
