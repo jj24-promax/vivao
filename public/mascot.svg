@@ -1,0 +1,6 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cabeça -->
+  <circle cx="50" cy="22" r="19" fill="#660099"/>
+  <!-- Corpo e Membros (Formato característico do boneco Vivo) -->
+  <path d="M50 44C38 44 28 46 18 52C10 57 6 65 10 72C14 79 25 78 32 74L22 90C18 96 28 100 34 94L50 78L66 94C72 100 82 96 78 90L68 74C75 78 86 79 90 72C94 65 90 57 82 52C72 46 62 44 50 44Z" fill="#660099"/>
+</svg>
