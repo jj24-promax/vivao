@@ -12,7 +12,6 @@ import FooterLinks from '@/components/FooterLinks';
 import Footer from '@/components/Footer';
 import StickyMobileCTA from '@/components/StickyMobileCTA';
 
-// Versão atualizada: 1.0.1 - Forçando atualização de produção
 const Index = () => {
   return (
     <div className="min-h-screen bg-white font-sans">
