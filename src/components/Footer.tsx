@@ -33,10 +33,9 @@ const Footer = () => {
               </div>
             </div>
             
-            {/* Right Side */}
+            {/* Right Side - Removed copyright and CNPJ info */}
             <div className="md:text-left space-y-1">
-              <p>Telefônica Brasil S.A CNPJ: 02.558.157/0001- 62. Copyright 2025 © Vivo.</p>
-              <p>Todos os direitos reservados.</p>
+              {/* Conteúdo removido a pedido do usuário */}
             </div>
           </div>
         </div>
